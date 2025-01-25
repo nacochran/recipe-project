@@ -60,5 +60,8 @@ Thumbs.db
 *.tmp
 *.bak
 
+# Ignore SQL files
+*.sql
+
 # Express-specific
 /uploads/
