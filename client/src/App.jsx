@@ -1,24 +1,35 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import WelcomePage from './pages/WelcomePage';
+import LoginPage from './pages/LoginPage';
+import SignupPage from './pages/SignupPage';
+import UserProfile from './pages/UserProfile';
 
 function App() {
-  const [users, setUsers] = useState([]);
+  // Placeholder user authentication
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [username, setUsername] = useState();
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    fetch('http://localhost:5000/users')
-      .then((response) => response.json())
-      .then((data) => setUsers(data))
-      .catch((error) => console.error('Error fetching users:', error));
-  }, []);
+  const handleLogin = (u) => {
+    // TODO: Handle cookies
+    setIsLoggedIn(true);
+    setUsername(u);
+    navigate(`/user/${u}`);
+  };
 
   return (
-    <div>
-      <h1>Recipe Project</h1>
-      <ul>
-        {users.map((user) => (
-          <li key={user.id}>{user.name}</li>
-        ))}
-      </ul>
-    </div>
+    <Routes>
+      {/* Redirect to /welcome if not logged in, otherwise to the profile */}
+      <Route path="/" element={isLoggedIn ? <Navigate to={`/user/${username}`} /> : <Navigate to="/welcome" />} />
+
+      <Route path="/welcome" element={<WelcomePage />} />
+      <Route path="/login" element={<LoginPage onLogin={handleLogin} />} />
+      <Route path="/signup" element={<SignupPage />} />
+
+      {/* Dynamic route for user profiles */}
+      <Route path="/user/:username" element={<UserProfile />} />
+    </Routes>
   );
 }
 
