@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 function SignupPage() {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -22,9 +24,7 @@ function SignupPage() {
       setMessage(data.message);
 
       if (response.ok) {
-        setUsername('');
-        setEmail('');
-        setPassword('');
+        navigate(`/user/${u}`);
       }
     } catch (error) {
       setMessage('Error signing up. Please try again.');
