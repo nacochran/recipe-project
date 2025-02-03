@@ -1,3 +1,19 @@
+//////////////////////////////////////////////////
+// LIBRARIES & DEPENDENCIES
+// Node.js is a variant of JavaScript that works on the back-end
+// Node applications can be managed from the command line using the node-package-manager (NPM) command
+// - express is a library built to make developing Node applications easier
+// - body-parser
+// - mysql12/promise is a library used for connecting to our MySQL DBMS 
+// - cors is a library used to enable cross-origin reference sharing (CORS)
+// - dotenv is a library used for extracting environment variables from a .env file
+// - bcryptjs is a library used for encrypting passwords (using a hash algorithm + salting)
+// - session is a library for express that enables us to easily create session cookies to manage user sessions
+// - passport is the library we are using for mainstreaming the authentication process
+// - passport-local is an extension of passport used for performing local authentication
+// - passport-google-oauth2 is an extension of passport used for performing Google OAuth2 authentication
+//////////////////////////////////////////////////
+
 import express from 'express';
 import bodyParser from "body-parser";
 import mysql from 'mysql2/promise';
@@ -10,16 +26,21 @@ import { Strategy } from "passport-local";
 import GoogleStrategy from "passport-google-oauth2";
 
 // TODO: 
-// (1) Move session secret word to .env file
+// (1) Ensure signup also triggers user authentication (DONE?)
 // (2) Add log out button to log user out and deauthenticate user session
 // (3) Remove miscellaneous code
 // (4) Finish Google Authentication
 
+//////////////////////////////////////////////////
+// General Config Variables                     //
+//////////////////////////////////////////////////
 const app = express();
 const port = 5000;
-const saltRounds = 10;
+const saltRounds = 10; // for bcrypt encryption algorithm
 
-// load environment variables from .env file
+//////////////////////////////////////////////////
+// Environment Variables                        //
+//////////////////////////////////////////////////
 dotenv.config();
 
 
@@ -39,13 +60,13 @@ app.use(express.json());
 // parses data passed through the URL
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// session cookie
+// create session cookie
 app.use(session({
-  secret: "TOPSECRETWORD",
+  secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   cookie: {
-    maxAge: 1000 * 60 * 60 * 24,
+    maxAge: 1000 * 60 * 60 * 24, // 1 day length cookie
     secure: false,
     sameSite: "lax",
     httpOnly: true
@@ -57,12 +78,14 @@ app.use(passport.initialize());
 // initalize user session (for cookies)
 app.use(passport.session());
 
-// Create database connection
+//////////////////////////////////////////////////
+// Create Database Connection                   //
+//////////////////////////////////////////////////
 const db = mysql.createPool({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
-  database: process.env.DB_DATABASE,
+  database: process.env.DB_DATABASE
 });
 
 // Test the connection
@@ -76,17 +99,45 @@ const db = mysql.createPool({
   }
 })();
 
-// return data to React.js frontend 
-// regarding logged in status
+//////////////////////////////////////////////////
+// Back-end API                                 //
+// This provides an interface for the front-end //
+// to have access to all the data managed by    //
+// the back-end                                 //
+// e.g.: app.get(), app.post(), etc.            //
+//////////////////////////////////////////////////
+
+//////////////////////////////////////////////////
+// Provides an endpoint (/session-data) to      //
+// access session data for authenticated users  //
+//////////////////////////////////////////////////
 app.get('/session-data', (req, res) => {
-
-  console.log("Session Data: ", req.session);
-
   let isLoggedIn = req.isAuthenticated();
 
-  res.json({ isLoggedIn: isLoggedIn, user: req.user });
   if (isLoggedIn) {
-    console.log(req.user);
+    res.json({ isLoggedIn: isLoggedIn, user: req.user });
+  } else {
+    res.json({ isLoggedIn: isLoggedIn, user: null });
+  }
+});
+
+//////////////////////////////////////////////////
+// Get user's public info                       //
+//////////////////////////////////////////////////
+app.get('/user/:username', async (req, res) => {
+  const { username } = req.params;
+
+  try {
+    const [rows] = await db.query('SELECT username, email FROM users WHERE username = ?', [username]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json(rows[0]);
+  } catch (error) {
+    console.error('Error fetching user profile:', error.message);
+    res.status(500).json({ message: 'Internal server error' });
   }
 });
 
@@ -94,7 +145,8 @@ app.get('/session-data', (req, res) => {
 //////////////////////////////////////////////////
 // Handle Signup POST request                   //
 //////////////////////////////////////////////////
-app.post('/signup', async (req, res) => {
+// TODO: /register
+app.post('/register', async (req, res) => {
   const { username, email, password } = req.body;
 
   if (!username || !email || !password) {
@@ -120,7 +172,7 @@ app.post('/signup', async (req, res) => {
         // Insert the new user
         await db.query('INSERT INTO users (username, email, password) VALUES (?, ?, ?)', [username, email, hash]);
 
-        return res.json({ message: "User registered successfully.", username: user.username });
+        return res.json({ message: "User registered successfully. Check email for verification link." });
       }
     });
 
@@ -136,8 +188,8 @@ app.post('/signup', async (req, res) => {
 //////////////////////////////////////////////////
 app.post('/login', (req, res, next) => {
   passport.authenticate("local", (err, user, info) => {
-    if (err) {
-      return res.status(500).json({ message: "Internal server error" });
+    if (err == "user_not_found") {
+      return res.json({ message: "Wrong password" });
     }
     if (!user) {
       return res.status(400).json({ message: info?.message || "Invalid login attempt" });
@@ -156,12 +208,33 @@ app.post('/login', (req, res, next) => {
   })(req, res, next);
 });
 
+//////////////////////////////////////////////////
+// Handle Logout POST Request                   //
+//////////////////////////////////////////////////
+app.post('/logout', (req, res) => {
+  req.logout((err) => {
+    if (err) {
+      return res.status(500).json({ message: 'Logout failed' });
+    }
+    req.session.destroy((err) => {
+      if (err) {
+        return res.status(500).json({ message: 'Failed to destroy session' });
+      }
+      res.clearCookie('connect.sid'); // Ensure session cookie is removed
+      return res.json({ message: 'Logged out successfully' });
+    });
+  });
+});
 
+
+
+//////////////////////////////////////////////////
+// Setups local authentication strategy         //
+//////////////////////////////////////////////////
 passport.use(
   "local",
   new Strategy(async function verify(username, password, cb) {
     try {
-      // Adjusted for MySQL result format
       const [rows] = await db.query("SELECT * FROM users WHERE username = ?", [
         username,
       ]);
@@ -181,7 +254,7 @@ passport.use(
           }
         });
       } else {
-        return cb("User not found");  // No user found
+        return cb("user_not_found");  // No user found
       }
     } catch (err) {
       console.log(err);
@@ -190,17 +263,27 @@ passport.use(
   })
 );
 
+//////////////////////////////////////////////////
+// Setups GoogleOAuth2 authentication strategy  //
+//////////////////////////////////////////////////
+
+// TODO!
 
 
+//////////////////////////////////////////////////
+// Encodes/decodes user session data            //
+//////////////////////////////////////////////////
 passport.serializeUser((user, cb) => {
   cb(null, user);
 });
-
 passport.deserializeUser((user, cb) => {
   cb(null, user);
 });
 
 
+//////////////////////////////////////////////////
+// Runs app on specified port                   //
+//////////////////////////////////////////////////
 app.listen(port, () => {
   console.log('Server is running on port 5000');
 });

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-function SignupPage() {
+function SignupPage({ updateUserStatus }) {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -24,7 +24,7 @@ function SignupPage() {
       setMessage(data.message);
 
       if (response.ok) {
-        navigate(`/user/${u}`);
+        navigate('/login-successful');
       }
     } catch (error) {
       setMessage('Error signing up. Please try again.');

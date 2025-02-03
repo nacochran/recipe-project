@@ -5,7 +5,7 @@ function WelcomePage() {
   return (
     <div>
       <h1>Welcome to the Recipe Project!</h1>
-      <p><Link to="/login">Login</Link> or <Link to="/signup">Sign up</Link></p>
+      <p><Link to="/login">Login</Link> or <Link to="/register">Sign up</Link></p>
     </div>
   );
 }

@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import WelcomePage from './Pages/WelcomePage';
+import SignupSuccessful from './Pages/SignupSuccessful';
 import LoginPage from './Pages/LoginPage';
 import SignupPage from './Pages/SignupPage';
-import UserProfile from './Pages/UserProfile';
+import PrivateProfile from './Pages/PrivateProfile';
+import PublicProfile from './Pages/PublicProfile';
 
 function App() {
   // Placeholder user authentication
@@ -11,9 +13,8 @@ function App() {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
+  // updates status
   const checkUserStatus = async (e) => {
-    // console.log("How many times..."); 
-    // TODO: Double check why this appears to be running twice
     setError('');
 
     try {
@@ -32,6 +33,7 @@ function App() {
       if (response.ok) {
         if (data.user) {
           setUser(data.user);
+          console.log(data.user, user);
         } else {
           setUser(null);
         }
@@ -52,15 +54,17 @@ function App() {
 
   return (
     <Routes>
-      {/* Redirect to /welcome if not logged in, otherwise to the profile */}
-      <Route path="/" element={(user != null) ? <Navigate to={`/user/${user.username}`} /> : <Navigate to="/welcome" />} />
+      {/* Redirect to /welcome */}
+      <Route path="/" element={<Navigate to="/welcome" />} />
 
       <Route path="/welcome" element={<WelcomePage />} />
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/signup" element={<SignupPage />} />
+      <Route path="/login" element={<LoginPage updateUserStatus={checkUserStatus} />} />
+      <Route path="/register" element={<SignupPage updateUserStatus={checkUserStatus} />} />
+      <Route path="login-successful" element={<SignupSuccessful />} />
+      <Route path="/profile" element={<PrivateProfile user={user} />} />
 
-      {/* Dynamic route for user profiles */}
-      <Route path="/user/:username" element={<UserProfile user={user} />} />
+      {/* Dynamic route for public user profiles */}
+      <Route path="/user/:username" element={<PublicProfile />} />
     </Routes>
   );
 }
