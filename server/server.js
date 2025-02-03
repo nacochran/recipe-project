@@ -26,10 +26,10 @@ import { Strategy } from "passport-local";
 import GoogleStrategy from "passport-google-oauth2";
 
 // TODO: 
-// (1) Ensure signup also triggers user authentication (DONE?)
-// (2) Add log out button to log user out and deauthenticate user session
-// (3) Remove miscellaneous code
-// (4) Finish Google Authentication
+// (1) Finish Google Authentication
+// (2) Remove miscellaneous code
+// (3) TODO: Perform rerouting effectively so that /profile is inaccesible to users not logged in, etc.
+// (4) Ensure that you can't login with "google" for users who used google
 
 //////////////////////////////////////////////////
 // General Config Variables                     //
@@ -227,6 +227,22 @@ app.post('/logout', (req, res) => {
 });
 
 
+app.get(
+  "/auth/google",
+  passport.authenticate("google", {
+    scope: ["profile", "email"],
+  })
+);
+
+app.get(
+  "/auth/google/check",
+  passport.authenticate("google", {
+    successRedirect: "/secrets",
+    failureRedirect: "/login",
+  })
+);
+
+
 
 //////////////////////////////////////////////////
 // Setups local authentication strategy         //
@@ -267,7 +283,44 @@ passport.use(
 // Setups GoogleOAuth2 authentication strategy  //
 //////////////////////////////////////////////////
 
-// TODO!
+passport.use(
+  "google",
+  new GoogleStrategy(
+    {
+      clientID: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      callbackURL: "http://localhost:3000/auth/google/check",
+      userProfileURL: "https://www.googleapis.com/oauth2/v3/userinfo",
+    },
+    (accessToken, refreshToken, profile, cb) => {
+      try {
+        const insertUserPromise = new Promise(async (resolve, reject) => {
+          const result = await db.query("SELECT * FROM users WHERE email = ?", [profile.email]);
+          if (result.rows.length === 0) {
+            await db.query("INSERT INTO users (email, password) VALUES (?, ?)", [profile.email, "google"]);
+            const [getUserRows] = await db.query("SELECT * from users WHERE email = ?", [profile.email]);
+
+            resolve(getUserRows[0]);
+          } else {
+            resolve(result.rows[0]);
+          }
+        });
+
+        insertUserPromise
+          .then((user) => {
+            console.log(user);
+            return cb(null, user);
+          })
+          .catch((error) => {
+            console.error("Error during user insertion:", error);
+            return cb(error);
+          });
+      } catch (err) {
+        return cb(err);
+      }
+    }
+  )
+);
 
 
 //////////////////////////////////////////////////

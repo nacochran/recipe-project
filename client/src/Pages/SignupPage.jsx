@@ -12,7 +12,7 @@ function SignupPage({ updateUserStatus }) {
     e.preventDefault();
 
     try {
-      const response = await fetch('http://localhost:5000/signup', {
+      const response = await fetch('http://localhost:5000/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -32,7 +32,7 @@ function SignupPage({ updateUserStatus }) {
   };
 
   return (
-    <div>
+    <div className="signup-container">
       <h1>Sign Up</h1>
       <form onSubmit={handleSubmit}>
         <div>
@@ -45,7 +45,7 @@ function SignupPage({ updateUserStatus }) {
           />
         </div>
         <div>
-          <label>Name:</label>
+          <label>Username:</label>
           <input
             type="text"
             value={username}
@@ -64,6 +64,17 @@ function SignupPage({ updateUserStatus }) {
         </div>
         <button type="submit">Sign Up</button>
       </form>
+
+      {/* Google Sign-In Button */}
+      <div className="google-signin-container">
+        <button
+          className="google-signin-btn"
+          onClick={() => window.location.href = 'http://localhost:5000/auth/google'}
+        >
+          <i className="fab fa-google"></i> Sign In with Google
+        </button>
+      </div>
+
       {message && <p>{message}</p>}
     </div>
   );
