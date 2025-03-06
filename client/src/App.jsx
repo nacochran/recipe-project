@@ -28,12 +28,9 @@ function App() {
 
       const data = await response.json();
 
-      //console.log("Testing Session data: ", data);
-
       if (response.ok) {
         if (data.user) {
           setUser(data.user);
-          console.log(data.user, user);
         } else {
           setUser(null);
         }

@@ -23,13 +23,7 @@ import bcrypt from "bcryptjs";
 import session from "express-session";
 import passport from "passport";
 import { Strategy } from "passport-local";
-import GoogleStrategy from "passport-google-oauth2";
 
-// TODO: 
-// (1) Finish Google Authentication
-// (2) Remove miscellaneous code
-// (3) TODO: Perform rerouting effectively so that /profile is inaccesible to users not logged in, etc.
-// (4) Ensure that you can't login with "google" for users who used google
 
 //////////////////////////////////////////////////
 // General Config Variables                     //
@@ -67,9 +61,9 @@ app.use(session({
   saveUninitialized: false,
   cookie: {
     maxAge: 1000 * 60 * 60 * 24, // 1 day length cookie
-    secure: false,
-    sameSite: "lax",
-    httpOnly: true
+    // secure: false,
+    // sameSite: "lax",
+    // httpOnly: true
   }
 }));
 
@@ -145,7 +139,6 @@ app.get('/user/:username', async (req, res) => {
 //////////////////////////////////////////////////
 // Handle Signup POST request                   //
 //////////////////////////////////////////////////
-// TODO: /register
 app.post('/register', async (req, res) => {
   const { username, email, password } = req.body;
 
@@ -227,23 +220,6 @@ app.post('/logout', (req, res) => {
 });
 
 
-app.get(
-  "/auth/google",
-  passport.authenticate("google", {
-    scope: ["profile", "email"],
-  })
-);
-
-app.get(
-  "/auth/google/check",
-  passport.authenticate("google", {
-    successRedirect: "/secrets",
-    failureRedirect: "/login",
-  })
-);
-
-
-
 //////////////////////////////////////////////////
 // Setups local authentication strategy         //
 //////////////////////////////////////////////////
@@ -277,49 +253,6 @@ passport.use(
       return cb(err);  // Return error if query fails
     }
   })
-);
-
-//////////////////////////////////////////////////
-// Setups GoogleOAuth2 authentication strategy  //
-//////////////////////////////////////////////////
-
-passport.use(
-  "google",
-  new GoogleStrategy(
-    {
-      clientID: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL: "http://localhost:3000/auth/google/check",
-      userProfileURL: "https://www.googleapis.com/oauth2/v3/userinfo",
-    },
-    (accessToken, refreshToken, profile, cb) => {
-      try {
-        const insertUserPromise = new Promise(async (resolve, reject) => {
-          const result = await db.query("SELECT * FROM users WHERE email = ?", [profile.email]);
-          if (result.rows.length === 0) {
-            await db.query("INSERT INTO users (email, password) VALUES (?, ?)", [profile.email, "google"]);
-            const [getUserRows] = await db.query("SELECT * from users WHERE email = ?", [profile.email]);
-
-            resolve(getUserRows[0]);
-          } else {
-            resolve(result.rows[0]);
-          }
-        });
-
-        insertUserPromise
-          .then((user) => {
-            console.log(user);
-            return cb(null, user);
-          })
-          .catch((error) => {
-            console.error("Error during user insertion:", error);
-            return cb(error);
-          });
-      } catch (err) {
-        return cb(err);
-      }
-    }
-  )
 );
 
 
