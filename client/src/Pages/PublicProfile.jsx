@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 
-function PublicProfile() {
+function PublicProfile({ user }) {
   const { username } = useParams(); // Extract username from URL
-  const [user, setUser] = useState(null);
+  const [publicUser, setUser] = useState(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -29,10 +29,10 @@ function PublicProfile() {
     <div>
       <h1>Public Profile</h1>
       {error && <p style={{ color: 'red' }}>{error}</p>}
-      {user ? (
+      {publicUser ? (
         <div>
-          <h2>{user.username}</h2>
-          <p>Email: {user.email}</p>
+          <h2>{publicUser.username}</h2>
+          <p>Email: {publicUser.email}</p>
         </div>
       ) : (
         !error && <p>Loading...</p>

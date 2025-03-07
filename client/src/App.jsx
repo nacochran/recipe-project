@@ -8,60 +8,58 @@ import PrivateProfile from './Pages/PrivateProfile';
 import PublicProfile from './Pages/PublicProfile';
 
 function App() {
-  // Placeholder user authentication
+  // User authentication state
   const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true); // Add a loading state
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  // updates status
-  const checkUserStatus = async (e) => {
+  // Check user status
+  const checkUserStatus = async () => {
     setError('');
+    setLoading(true); // Set loading while fetching
 
     try {
       const response = await fetch('http://localhost:5000/session-data', {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include'
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
       });
 
       const data = await response.json();
-
       if (response.ok) {
-        if (data.user) {
-          setUser(data.user);
-        } else {
-          setUser(null);
-        }
-
+        setUser(data.user || null);
       } else {
         setError(data.message);
       }
     } catch (error) {
       console.error('Failed to authenticate user from session.', error);
       setError('Failed to connect to the server.');
+    } finally {
+      setLoading(false); // Finish loading after fetch attempt
     }
   };
 
-  // run @checkUserStatus on load
+  // Run checkUserStatus on load
   useEffect(() => {
     checkUserStatus();
   }, []);
 
+  // Show loading message while checking authentication
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
   return (
     <Routes>
-      {/* Redirect to /welcome */}
-      <Route path="/" element={<Navigate to="/welcome" />} />
-
+      {/* Redirect logic AFTER loading */}
+      <Route path="/" element={user ? <Navigate to="/profile" /> : <Navigate to="/welcome" />} />
       <Route path="/welcome" element={<WelcomePage />} />
-      <Route path="/login" element={<LoginPage updateUserStatus={checkUserStatus} />} />
-      <Route path="/register" element={<SignupPage updateUserStatus={checkUserStatus} />} />
-      <Route path="login-successful" element={<SignupSuccessful />} />
+      <Route path="/login" element={<LoginPage user={user} updateUserStatus={checkUserStatus} />} />
+      <Route path="/register" element={<SignupPage user={user} />} />
+      <Route path="/signup-successful" element={<SignupSuccessful />} />
       <Route path="/profile" element={<PrivateProfile user={user} />} />
-
-      {/* Dynamic route for public user profiles */}
-      <Route path="/user/:username" element={<PublicProfile />} />
+      <Route path="/user/:username" element={<PublicProfile user={user} />} />
     </Routes>
   );
 }
