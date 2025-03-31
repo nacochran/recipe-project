@@ -102,62 +102,89 @@ function LoginPage({ user, updateUserStatus }) {
   };
 
   return (
-    <div>
-      <h1>Login</h1>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-      {message && <p style={{ color: 'green' }}>{message}</p>}
+    <div className="min-h-screen flex flex-col items-center justify-center bg-blue-50 p-6">
+      <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-md transform transition-all duration-500 hover:scale-105">
+        <div className="text-center mb-6">
+          <h1 className="text-4xl font-bold text-blue-600">Login</h1>
+          {error && <p className="text-red-500 mt-2">{error}</p>}
+          {message && <p className="text-green-500 mt-2">{message}</p>}
+        </div>
 
-      {/* Login Form */}
-      <form onSubmit={handleLogin}>
-        <input
-          type="text"
-          placeholder="Username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          required
-        />
-        <br />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-        <br />
-        <button type="submit">Login</button>
-      </form>
-
-      {/* Resend Verification Form (only shows if needed) */}
-      {showResendForm && (
-        <form onSubmit={handleResendVerification}>
-          <input
-            type="email"
-            placeholder="Enter your email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-          <br />
-          <button type="submit">Resend Verification Email</button>
+        {/* Login Form */}
+        <form onSubmit={handleLogin} className="space-y-4">
+          <div>
+            <input
+              type="text"
+              placeholder="Username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <button
+            type="submit"
+            className="w-full py-2 px-4 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-all duration-300 transform hover:scale-105"
+          >
+            Login
+          </button>
         </form>
-      )}
 
-      {/* Verification Form (only shows if needed) */}
-      {showVerificationForm && (
-        <form onSubmit={handleVerification}>
-          <input
-            type="text"
-            placeholder="Verification Code"
-            value={verificationCode}
-            onChange={(e) => setVerificationCode(e.target.value)}
-            required
-            maxLength="6"
-          />
-          <br />
-          <button type="submit">Verify</button>
-        </form>
-      )}
+        {/* Resend Verification Form (only shows if needed) */}
+        {showResendForm && (
+          <form onSubmit={handleResendVerification} className="space-y-4 mt-6">
+            <div>
+              <input
+                type="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <button
+              type="submit"
+              className="w-full py-2 px-4 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-all duration-300 transform hover:scale-105"
+            >
+              Resend Verification Email
+            </button>
+          </form>
+        )}
+
+        {/* Verification Form (only shows if needed) */}
+        {showVerificationForm && (
+          <form onSubmit={handleVerification} className="space-y-4 mt-6">
+            <div>
+              <input
+                type="text"
+                placeholder="Verification Code"
+                value={verificationCode}
+                onChange={(e) => setVerificationCode(e.target.value)}
+                required
+                maxLength="6"
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <button
+              type="submit"
+              className="w-full py-2 px-4 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-all duration-300 transform hover:scale-105"
+            >
+              Verify
+            </button>
+          </form>
+        )}
+      </div>
     </div>
   );
 }

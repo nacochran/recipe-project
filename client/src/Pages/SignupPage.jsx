@@ -1,142 +1,181 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
-function SignupPage({ user }) {
-  const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [verificationCode, setVerificationCode] = useState('');
-  const [message, setMessage] = useState('');
-  const [error, setError] = useState('');
-  const [showVerification, setShowVerification] = useState(false);
-  const [showResendForm, setShowResendForm] = useState(false);
+function SignupPage() {
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [verificationCode, setVerificationCode] = useState("");
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const [step, setStep] = useState(1); // 1 = Signup, 2 = Verification, 3 = Resend
+  const [showResendButton, setShowResendButton] = useState(false); // Flag to show the resend button
 
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
-    setMessage('');
+    setError("");
+    setMessage("");
 
     try {
-      const response = await fetch('http://localhost:5000/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, email, password }),
-      });
+      let endpoint = "";
+      let body = {};
 
-      const data = await response.json();
-
-      if (response.ok) {
-        setMessage(data.message);
-        setShowVerification(true);
-      } else {
-        setError(data.error);
+      // Set the request data based on the current step
+      if (step === 1) {
+        endpoint = "http://localhost:5000/register";
+        body = { username, email, password };
+      } else if (step === 2) {
+        endpoint = "http://localhost:5000/verify";
+        body = { verificationCode };
+      } else if (step === 3) {
+        endpoint = "http://localhost:5000/resend-verification";
+        body = { email };
       }
-    } catch (error) {
-      setError('Error signing up. Please try again.');
-    }
-  };
 
-  const handleVerification = async (e) => {
-    e.preventDefault();
-    setError('');
-    setMessage('');
-
-    try {
-      const response = await fetch('http://localhost:5000/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ verificationCode }),
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
       });
 
       const data = await response.json();
 
       if (response.ok && !data.error) {
         setMessage(data.message);
-        setShowVerification(false);
-        navigate('/signup-successful');
+        if (step === 1) {
+          setStep(2); // Move to verification
+        } else if (step === 2) {
+          navigate("/signup-successful");
+        } else {
+          setStep(2); // After resend, go back to verification
+        }
       } else {
         setError(data.error);
-        if (data.err_code === 'invalid_code') {
-          setShowResendForm(true);
+        if (step === 2 && data.err_code === "invalid_code") {
+          setShowResendButton(true); // Show the resend button on invalid code
         }
       }
     } catch (error) {
-      setError('Error verifying code. Please try again.');
+      setError("Error. Please try again.");
     }
   };
 
-  const handleResendVerification = async (e) => {
-    e.preventDefault();
-    setError('');
-    setMessage('');
-
-    try {
-      const response = await fetch('http://localhost:5000/resend-verification', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setMessage(data.message);
-        setShowVerification(true);
-        setShowResendForm(false);
-      } else {
-        setError(data.error);
-      }
-    } catch (error) {
-      setError('Error resending verification. Please try again.');
-    }
+  const handleResendButtonClick = () => {
+    setStep(3); // Switch to Resend form when the button is clicked
+    setShowResendButton(false); // Hide the resend button after click
   };
 
   return (
-    <div>
-      <h1>Sign Up</h1>
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 p-6">
+      <div className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full">
+        <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">
+          {step === 1
+            ? "Sign Up"
+            : step === 2
+              ? "Verify Email"
+              : "Resend Verification"}
+        </h2>
 
-      {!showVerification && (
-        <form onSubmit={handleSubmit}>
-          <div>
-            <label>Email:</label>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-          </div>
-          <div>
-            <label>Username:</label>
-            <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} required />
-          </div>
-          <div>
-            <label>Password:</label>
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-          </div>
-          <button type="submit">Sign Up</button>
+        <form className="space-y-4" onSubmit={handleSubmit}>
+          {/* Email/Username/Password Fields */}
+          {step === 1 && (
+            <>
+              <div>
+                <label className="block text-gray-600 text-sm font-medium">Email</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="w-full p-2 border border-gray-300 rounded mt-1 focus:ring focus:ring-blue-300"
+                />
+              </div>
+              <div>
+                <label className="block text-gray-600 text-sm font-medium">Username</label>
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  required
+                  className="w-full p-2 border border-gray-300 rounded mt-1 focus:ring focus:ring-blue-300"
+                />
+              </div>
+              <div>
+                <label className="block text-gray-600 text-sm font-medium">Password</label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="w-full p-2 border border-gray-300 rounded mt-1 focus:ring focus:ring-blue-300"
+                />
+              </div>
+            </>
+          )}
+
+          {/* Verification Code */}
+          {step === 2 && (
+            <div>
+              <label className="block text-gray-600 text-sm font-medium">Verification Code</label>
+              <input
+                type="text"
+                value={verificationCode}
+                onChange={(e) => setVerificationCode(e.target.value)}
+                required
+                className="w-full p-2 border border-gray-300 rounded mt-1 focus:ring focus:ring-blue-300"
+              />
+            </div>
+          )}
+
+          {/* Resend Form */}
+          {step === 3 && (
+            <div>
+              <label className="block text-gray-600 text-sm font-medium">Email</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="w-full p-2 border border-gray-300 rounded mt-1 focus:ring focus:ring-blue-300"
+              />
+            </div>
+          )}
+
+          {/* Submit Button */}
+          <button
+            type="submit"
+            className={`w-full py-2 rounded ${step === 1
+                ? "bg-blue-500 text-white hover:bg-blue-600"
+                : step === 2
+                  ? "bg-green-500 text-white hover:bg-green-600"
+                  : "bg-yellow-500 text-white hover:bg-yellow-600"
+              }`}
+          >
+            {step === 1
+              ? "Sign Up"
+              : step === 2
+                ? "Verify"
+                : "Resend Verification"}
+          </button>
         </form>
-      )}
 
-      {showVerification && (
-        <form onSubmit={handleVerification}>
-          <div>
-            <label>Verification Code:</label>
-            <input type="text" value={verificationCode} onChange={(e) => setVerificationCode(e.target.value)} required maxLength="6" />
+        {/* Resend Button shown when an invalid code is entered */}
+        {showResendButton && (
+          <div className="mt-4 text-center">
+            <button
+              onClick={handleResendButtonClick}
+              className="text-blue-600 hover:underline"
+            >
+              Resend Email
+            </button>
           </div>
-          <button type="submit">Verify</button>
-        </form>
-      )}
+        )}
 
-      {showResendForm && (
-        <form onSubmit={handleResendVerification}>
-          <div>
-            <label>Email:</label>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-          </div>
-          <button type="submit">Resend Verification Code</button>
-        </form>
-      )}
-
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-      {message && <p style={{ color: 'green' }}>{message}</p>}
+        {error && <p className="text-red-500 text-sm mt-3">{error}</p>}
+        {message && <p className="text-green-500 text-sm mt-3">{message}</p>}
+      </div>
     </div>
   );
 }

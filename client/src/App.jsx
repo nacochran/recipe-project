@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import Header from './components/Header';
+import Footer from './components/Footer';
 import WelcomePage from './Pages/WelcomePage';
 import SignupSuccessful from './Pages/SignupSuccessful';
 import LoginPage from './Pages/LoginPage';
@@ -17,6 +19,7 @@ function App() {
   // Check user status
   const checkUserStatus = async () => {
     setError('');
+    setUser('loading-user');
     setLoading(true); // Set loading while fetching
 
     try {
@@ -47,20 +50,31 @@ function App() {
 
   // Show loading message while checking authentication
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <div>
+        <Header />
+        <div className="text-center mt-20">Loading...</div> {/* Display loading message */}
+        <Footer />
+      </div>
+    );
   }
 
+  // After loading is finished, return the routes
   return (
-    <Routes>
-      {/* Redirect logic AFTER loading */}
-      <Route path="/" element={user ? <Navigate to="/profile" /> : <Navigate to="/welcome" />} />
-      <Route path="/welcome" element={<WelcomePage />} />
-      <Route path="/login" element={<LoginPage user={user} updateUserStatus={checkUserStatus} />} />
-      <Route path="/register" element={<SignupPage user={user} />} />
-      <Route path="/signup-successful" element={<SignupSuccessful />} />
-      <Route path="/profile" element={<PrivateProfile user={user} />} />
-      <Route path="/user/:username" element={<PublicProfile user={user} />} />
-    </Routes>
+    <div>
+      <Header />
+      <Routes>
+        {/* Redirect logic AFTER loading */}
+        <Route path="/" element={user ? <Navigate to="/profile" /> : <Navigate to="/welcome" />} />
+        <Route path="/welcome" element={<WelcomePage />} />
+        <Route path="/login" element={<LoginPage user={user} updateUserStatus={checkUserStatus} />} />
+        <Route path="/register" element={<SignupPage user={user} />} />
+        <Route path="/signup-successful" element={<SignupSuccessful />} />
+        <Route path="/profile" element={user ? <PrivateProfile user={user} /> : <Navigate to="/" />} />
+        <Route path="/user/:username" element={<PublicProfile user={user} />} />
+      </Routes>
+      <Footer />
+    </div>
   );
 }
 

@@ -22,18 +22,13 @@ function PrivateProfile({ user }) {
   };
 
   // Show loading screen...
-  if (!user) {
-    return <p>Loading profile...</p>;
-  }
-  else {
-    return (
-      <div>
-        <h1>User Profile</h1>
-        <p>Welcome to your personal profile, {user.username}!</p>
-        <button onClick={handleLogout}>Logout</button>
-      </div>
-    );
-  }
+  return (
+    <div>
+      <h1>User Profile</h1>
+      <p>Welcome to your personal profile, {user.username}!</p>
+      <button onClick={handleLogout}>Logout</button>
+    </div>
+  );
 }
 
 export default PrivateProfile;
