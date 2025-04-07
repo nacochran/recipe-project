@@ -68,7 +68,6 @@ async function sendVerificationEmail(email, verificationCode) {
   }
 }
 
-
 //////////////////////////////////////////////////
 // Middleware                                   //
 //////////////////////////////////////////////////
@@ -137,7 +136,7 @@ app.get('/session-data', (req, res) => {
 app.get("/user/:username", async (req, res) => {
   const { username } = req.params;
   try {
-    const rows = await db.get_verified_users({
+      const rows = await db.get_verified_users({
       queryType: "username",
       filter: username,
       fields: ['username', 'email']
@@ -150,17 +149,18 @@ app.get("/user/:username", async (req, res) => {
     } else {
       res.json({
         user: req.user,
+        data: rows,
         error: null
       });
     }
-  } catch (error) {
+  } 
+  catch (error) {
     console.error("Error fetching user profile:", error.message);
     res.json({
       error: 'Internal Server Error'
     });
   }
 });
-
 
 //////////////////////////////////////////////////
 // Handle Signup POST request                   //
@@ -291,7 +291,6 @@ app.post("/resend-verification", async (req, res) => {
   }
 });
 
-
 // Set up Passport authentication
 passport.use(
   "local",
@@ -327,6 +326,74 @@ passport.deserializeUser((user, cb) => cb(null, user));
 
 // deleted users from unverified_users table after 7 days
 db.refresh_unverified_users();
+
+//////////////////////////////////////////////////
+// Get recipe info                              //
+//////////////////////////////////////////////////
+
+app.get("/:username/:recipename", async (req, res) => {
+  const { username } = req.params;
+  const { recipename } = req.params;
+  try{
+    const rows = await db.get_user_recipe({
+      queryType: "name",
+      filter: [recipename, username], 
+      fields: ["id", "name", "creator"]
+    });
+
+    if (rows.length === 0){
+      res.json({
+        error: "recipe not found"
+      });
+    }
+    else {
+      res.json({
+        data: rows
+      });
+    }
+  }
+  catch (error)
+  {
+    console.error("Error fetching user profile:", error.message);
+    res.json({
+      error: 'Internal Server Error'
+    });
+  }
+});
+
+app.get("/recipe/", async function(req, res){
+  const query = req.query.tag;
+  if(query === undefined){
+    res.json({
+      error: 'incorrect call try /recipe/?tag={value}'
+    });
+  }
+  try{
+    const rows = await db.get_tag_recipes({
+      queryType: "",
+      filter: query,
+      fields: ["id", "name"]
+    });
+
+    if (rows.length === 0){
+      res.json({
+        error: "recipe not found"
+      });
+    }
+    else{
+      res.json({
+        data: "This is some test Data",
+        data: rows
+      });
+    }
+  }
+  catch (error){
+    console.error("Error fetching /recipe/?tag={}:", error.message);
+    res.json({
+      error: 'Internal Server Error Keto'
+    });
+  }
+});
 
 //////////////////////////////////////////////////
 // Run Server                                   //

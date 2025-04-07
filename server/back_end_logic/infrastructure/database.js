@@ -1,6 +1,7 @@
 import mysql from "mysql2/promise";
 import crypto from "crypto"; // senerating token for email verification link
 import bcrypt from "bcryptjs";
+import { log } from "console";
 
 export default class Database {
   constructor(config) {
@@ -27,7 +28,8 @@ export default class Database {
       console.log('Query type for get_verified_users must be username or email');
       return null;
     }
-
+    // console.log(config.filter);
+    // console.log(config.quaryType);
     const infoFields = config.fields.join(',');
     const query = `SELECT ${infoFields} FROM users WHERE ${config.queryType} = ?`;
 
@@ -94,7 +96,6 @@ export default class Database {
     }
   }
 
-
   async verify_user(config, cb) {
     const [rows] = await this.db.query(
       "SELECT * FROM unverified_users WHERE verification_code = ? AND token_expires_at > NOW()",
@@ -160,4 +161,25 @@ export default class Database {
       }
     }, 24 * 60 * 60 * 1000);
   }
+
+  async get_user_recipe(config){
+    if (!["name"].includes(config.queryType)) {
+      console.log('Query type for get_user_recipe must be username or email followed by the recipe name');
+      return null;
+    }
+    const infoFields = config.fields.join(',');
+    const query = `Select ${infoFields} from recipes WHERE ${config.queryType} = "${config.filter[0]}" and creator IN (Select id from users where username = "${config.filter[1]}")`;
+
+    const [rows] = await this.db.query(query, [config.filter]);
+  
+    return rows;
+  }
+
+  async get_tag_recipes(config){
+    const query = `SELECT * FROM recipes WHERE id IN (SELECT recipe_id FROM recipe_tags WHERE tag_id IN (SELECT id FROM tags WHERE label = "${config.filter}"))`;
+
+    const [rows] = await this.db.query(query, [config.filter]);
+    return rows;
+  }
+
 }
