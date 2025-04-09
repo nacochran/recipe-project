@@ -368,6 +368,7 @@ app.get("/recipe/", async function(req, res){
       error: 'incorrect call try /recipe/?tag={value}'
     });
   }
+  console.log(query)
   try{
     const rows = await db.get_tag_recipes({
       queryType: "",
