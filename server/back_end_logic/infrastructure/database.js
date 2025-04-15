@@ -176,9 +176,21 @@ export default class Database {
   }
 
   async get_tag_recipes(config){
-    const query = `SELECT * FROM recipes WHERE id IN (SELECT recipe_id FROM recipe_tags WHERE tag_id IN (SELECT id FROM tags WHERE label = "${config.filter}"))`;
 
-    const [rows] = await this.db.query(query, [config.filter]);
+    const query1 = `SELECT r.id, r.title as name, r.prep_time, r.cook_time FROM recipes r
+                    JOIN recipe_tags rt ON r.id = rt.recipe_id
+                    JOIN tags t ON rt.tag_id = t.id
+                    WHERE t.label IN (${config.filter[0]})
+                    GROUP BY r.id
+                    HAVING COUNT(DISTINCT t.label) = ${config.filter[0].length}
+                    intersect
+                    SELECT r.id, r.title as name, r.prep_time, r.cook_time FROM recipes r WHERE title LIKE "%${config.filter[1]}%"
+                    intersect
+                    SELECT r.id, r.title as name, r.prep_time, r.cook_time FROM recipes r WHERE ${config.filter[2]} >= (prep_time + cook_time)
+                    intersect
+                    SELECT r.id, r.title as name, r.prep_time, r.cook_time FROM recipes r WHERE average_rating > ${config.filter[3]}`;
+    console.log(query1);
+    const [rows] = await this.db.query(query1, [config.filter]);
     return rows;
   }
 

@@ -361,19 +361,27 @@ app.get("/:username/:recipename", async (req, res) => {
   }
 });
 
-app.get("/recipe/", async function(req, res){
-  const query = req.query.tag;
+app.get("/recipes", async function(req, res){
+  const query = req.query;
+  const tags = query.tags.split(','); //swap the ',' with what your using for the serperator
+  const title = query.title;
+  const cookTime = query.cookTime;
+  const average_rating = query.average_rating;
   if(query === undefined){
     res.json({
       error: 'incorrect call try /recipe/?tag={value}'
     });
   }
   console.log(query)
+  console.log(tags)
+  console.log(title)
+  console.log(cookTime)
+  console.log(average_rating)
   try{
     const rows = await db.get_tag_recipes({
       queryType: "",
-      filter: query,
-      fields: ["id", "name"]
+      filter: [tags, title, cookTime, average_rating],
+      fields: ["id", "title", "cookTime"]
     });
 
     if (rows.length === 0){
