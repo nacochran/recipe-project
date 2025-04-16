@@ -1,5 +1,8 @@
+
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+import { Button } from "@/components/ui/button";
+import { User, Lock, Mail } from "lucide-react";
 
 function LoginPage({ user, updateUserStatus }) {
   const [username, setUsername] = useState('');
@@ -27,6 +30,8 @@ function LoginPage({ user, updateUserStatus }) {
       });
 
       const data = await response.json();
+
+      console.log(data);
 
       if (response.ok && data.user) {
         updateUserStatus();
@@ -102,69 +107,90 @@ function LoginPage({ user, updateUserStatus }) {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-blue-50 p-6">
-      <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-md transform transition-all duration-500 hover:scale-105">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4 sm:p-6">
+      <div className="bg-card border border-border p-8 rounded-lg shadow-lg w-full max-w-md">
         <div className="text-center mb-6">
-          <h1 className="text-4xl font-bold text-blue-600">Login</h1>
-          {error && <p className="text-red-500 mt-2">{error}</p>}
-          {message && <p className="text-green-500 mt-2">{message}</p>}
+          <h1 className="text-3xl font-bold text-recipe-500 mb-2">Login to RecipePal</h1>
+          <p className="text-muted-foreground">Enter your credentials to access your account</p>
+          {error && <p className="text-destructive mt-4 p-3 bg-destructive/10 rounded-md border border-destructive/20">{error}</p>}
+          {message && <p className="text-primary mt-4 p-3 bg-primary/10 rounded-md border border-primary/20">{message}</p>}
         </div>
 
         {/* Login Form */}
         <form onSubmit={handleLogin} className="space-y-4">
-          <div>
-            <input
-              type="text"
-              placeholder="Username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+          <div className="space-y-2">
+            <div className="relative">
+              <User className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+                className="w-full pl-10 py-2 px-4 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
           </div>
-          <div>
-            <input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+          <div className="space-y-2">
+            <div className="relative">
+              <Lock className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+              <input
+                type="password"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className="w-full pl-10 py-2 px-4 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
           </div>
-          <button
+          <Button
             type="submit"
-            className="w-full py-2 px-4 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-all duration-300 transform hover:scale-105"
+            className="w-full recipe-button-primary"
           >
             Login
-          </button>
+          </Button>
         </form>
+
+        {/* Link to Register */}
+        <div className="mt-6 text-center">
+          <p className="text-muted-foreground">
+            Don't have an account?{" "}
+            <Link to="/signup" className="text-recipe-500 hover:underline">
+              Sign up
+            </Link>
+          </p>
+        </div>
 
         {/* Resend Verification Form (only shows if needed) */}
         {showResendForm && (
-          <form onSubmit={handleResendVerification} className="space-y-4 mt-6">
-            <div>
+          <form onSubmit={handleResendVerification} className="space-y-4 mt-6 pt-6 border-t border-border">
+            <h3 className="text-lg font-medium text-center mb-2">Resend Verification</h3>
+            <div className="relative">
+              <Mail className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
               <input
                 type="email"
                 placeholder="Enter your email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full pl-10 py-2 px-4 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
               />
             </div>
-            <button
+            <Button
               type="submit"
-              className="w-full py-2 px-4 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-all duration-300 transform hover:scale-105"
+              variant="secondary"
+              className="w-full"
             >
               Resend Verification Email
-            </button>
+            </Button>
           </form>
         )}
 
         {/* Verification Form (only shows if needed) */}
         {showVerificationForm && (
-          <form onSubmit={handleVerification} className="space-y-4 mt-6">
+          <form onSubmit={handleVerification} className="space-y-4 mt-6 pt-6 border-t border-border">
+            <h3 className="text-lg font-medium text-center mb-2">Enter Verification Code</h3>
             <div>
               <input
                 type="text"
@@ -173,15 +199,15 @@ function LoginPage({ user, updateUserStatus }) {
                 onChange={(e) => setVerificationCode(e.target.value)}
                 required
                 maxLength="6"
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full py-2 px-4 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-center font-mono text-lg tracking-wider"
               />
             </div>
-            <button
+            <Button
               type="submit"
-              className="w-full py-2 px-4 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-all duration-300 transform hover:scale-105"
+              className="w-full"
             >
               Verify
-            </button>
+            </Button>
           </form>
         )}
       </div>

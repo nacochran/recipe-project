@@ -4,6 +4,7 @@ export default class User {
     this.username = config.username;
     this.email = config.email;
     this.password = config.password;
+    this.avatar_url = config.avatar_url || null;
   }
 
   async is_email_unique(db) {
@@ -28,6 +29,6 @@ export default class User {
   }
 
   async match_verified_users(db) {
-    return await db.get_verified_users({ queryType: 'username', filter: this.username, fields: ['username', 'password', 'email'] });
+    return await db.get_verified_users({ queryType: 'username', filter: this.username, fields: ['id', 'username', 'password', 'email', 'avatar_url'] });
   }
 }

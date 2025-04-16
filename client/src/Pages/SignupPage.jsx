@@ -1,5 +1,7 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { User, Lock, Mail, KeyRound } from "lucide-react";
 
 function SignupPage() {
   const [username, setUsername] = useState("");
@@ -24,7 +26,7 @@ function SignupPage() {
 
       // Set the request data based on the current step
       if (step === 1) {
-        endpoint = "http://localhost:5000/register";
+        endpoint = "http://localhost:5000/signup";
         body = { username, email, password };
       } else if (step === 2) {
         endpoint = "http://localhost:5000/verify";
@@ -68,89 +70,114 @@ function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 p-6">
-      <div className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full">
-        <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4 sm:p-6">
+      <div className="bg-card border border-border p-8 rounded-lg shadow-lg max-w-md w-full">
+        <h2 className="text-3xl font-bold text-center text-recipe-500 mb-2">
           {step === 1
-            ? "Sign Up"
+            ? "Create Account"
             : step === 2
-              ? "Verify Email"
+              ? "Verify Your Email"
               : "Resend Verification"}
         </h2>
+        <p className="text-muted-foreground text-center mb-6">
+          {step === 1
+            ? "Join RecipePal to start cooking!"
+            : step === 2
+              ? "Check your email for the verification code"
+              : "Enter your email to receive a new code"}
+        </p>
+
+        {error && <p className="text-destructive mb-4 p-3 bg-destructive/10 rounded-md border border-destructive/20">{error}</p>}
+        {message && <p className="text-primary mb-4 p-3 bg-primary/10 rounded-md border border-primary/20">{message}</p>}
 
         <form className="space-y-4" onSubmit={handleSubmit}>
           {/* Email/Username/Password Fields */}
           {step === 1 && (
             <>
-              <div>
-                <label className="block text-gray-600 text-sm font-medium">Email</label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="w-full p-2 border border-gray-300 rounded mt-1 focus:ring focus:ring-blue-300"
-                />
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Email</label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="w-full pl-10 py-2 px-4 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                </div>
               </div>
-              <div>
-                <label className="block text-gray-600 text-sm font-medium">Username</label>
-                <input
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  required
-                  className="w-full p-2 border border-gray-300 rounded mt-1 focus:ring focus:ring-blue-300"
-                />
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Username</label>
+                <div className="relative">
+                  <User className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+                  <input
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    required
+                    className="w-full pl-10 py-2 px-4 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                </div>
               </div>
-              <div>
-                <label className="block text-gray-600 text-sm font-medium">Password</label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className="w-full p-2 border border-gray-300 rounded mt-1 focus:ring focus:ring-blue-300"
-                />
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Password</label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="w-full pl-10 py-2 px-4 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                </div>
               </div>
             </>
           )}
 
           {/* Verification Code */}
           {step === 2 && (
-            <div>
-              <label className="block text-gray-600 text-sm font-medium">Verification Code</label>
-              <input
-                type="text"
-                value={verificationCode}
-                onChange={(e) => setVerificationCode(e.target.value)}
-                required
-                className="w-full p-2 border border-gray-300 rounded mt-1 focus:ring focus:ring-blue-300"
-              />
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">Verification Code</label>
+              <div className="relative">
+                <KeyRound className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+                <input
+                  type="text"
+                  value={verificationCode}
+                  onChange={(e) => setVerificationCode(e.target.value)}
+                  required
+                  className="w-full pl-10 py-2 px-4 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring font-mono tracking-wider"
+                />
+              </div>
             </div>
           )}
 
           {/* Resend Form */}
           {step === 3 && (
-            <div>
-              <label className="block text-gray-600 text-sm font-medium">Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="w-full p-2 border border-gray-300 rounded mt-1 focus:ring focus:ring-blue-300"
-              />
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">Email</label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="w-full pl-10 py-2 px-4 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
             </div>
           )}
 
           {/* Submit Button */}
-          <button
+          <Button
             type="submit"
-            className={`w-full py-2 rounded ${step === 1
-                ? "bg-blue-500 text-white hover:bg-blue-600"
-                : step === 2
-                  ? "bg-green-500 text-white hover:bg-green-600"
-                  : "bg-yellow-500 text-white hover:bg-yellow-600"
+            className={`w-full ${step === 1
+              ? "recipe-button-primary"
+              : step === 2
+                ? "bg-recipe-500 text-white hover:bg-recipe-600"
+                : "bg-spice-400 text-white hover:bg-spice-500"
               }`}
           >
             {step === 1
@@ -158,23 +185,32 @@ function SignupPage() {
               : step === 2
                 ? "Verify"
                 : "Resend Verification"}
-          </button>
+          </Button>
         </form>
+
+        {/* Link to Login */}
+        {step === 1 && (
+          <div className="mt-6 text-center">
+            <p className="text-muted-foreground">
+              Already have an account?{" "}
+              <Link to="/login" className="text-recipe-500 hover:underline">
+                Log in
+              </Link>
+            </p>
+          </div>
+        )}
 
         {/* Resend Button shown when an invalid code is entered */}
         {showResendButton && (
           <div className="mt-4 text-center">
             <button
               onClick={handleResendButtonClick}
-              className="text-blue-600 hover:underline"
+              className="text-spice-500 hover:text-spice-600 hover:underline"
             >
-              Resend Email
+              Resend Verification Email
             </button>
           </div>
         )}
-
-        {error && <p className="text-red-500 text-sm mt-3">{error}</p>}
-        {message && <p className="text-green-500 text-sm mt-3">{message}</p>}
       </div>
     </div>
   );

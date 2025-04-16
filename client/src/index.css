@@ -1,1 +1,72 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 100 100% 100%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    --primary: 100 35% 45%;
+    /* recipe-500 green */
+    --primary-foreground: 0 0% 98%;
+
+    --secondary: 25 85% 55%;
+    /* spice-400 orange */
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 25 85% 55%;
+    /* spice-400 orange */
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 100 35% 45%;
+    /* recipe-500 green */
+
+    --radius: 0.5rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', sans-serif;
+    overflow-x: hidden;
+  }
+
+  /* Custom utility classes */
+  .recipe-container {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  .recipe-card {
+    @apply transition-all duration-300 hover:-translate-y-1;
+  }
+
+  .recipe-button {
+    @apply px-4 py-2 rounded-md transition-colors duration-200 font-medium;
+  }
+
+  .recipe-button-primary {
+    @apply bg-recipe-500 text-white hover:bg-recipe-600 recipe-button;
+  }
+
+  .recipe-button-secondary {
+    @apply bg-spice-400 text-white hover:bg-spice-500 recipe-button;
+  }
+}

@@ -23,6 +23,11 @@ import nodemailer from "nodemailer";
 import session from "express-session";
 import passport from "passport";
 import { Strategy } from "passport-local";
+import multer from "multer";
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+
 
 // Back-end logic
 import Database from './back_end_logic/infrastructure/database.js';
@@ -68,13 +73,14 @@ async function sendVerificationEmail(email, verificationCode) {
   }
 }
 
+
 //////////////////////////////////////////////////
 // Middleware                                   //
 //////////////////////////////////////////////////
 
 // enable cross-origin reference sharing (CORS)
 app.use(cors({
-  origin: "http://localhost:3000",
+  origin: "http://localhost:8080",
   credentials: true
 }));
 
@@ -93,6 +99,24 @@ app.use(
     cookie: { maxAge: 1000 * 60 * 60 * 24 }, // 1-day cookie
   })
 );
+
+app.use('/uploads', express.static('uploads'));
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Storage config
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/'); // Ensure this folder exists
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, file.fieldname + '-' + uniqueSuffix + ext);
+  }
+});
+
+const upload = multer({ storage: storage })
 
 // setup passport for authentication
 app.use(passport.initialize());
@@ -125,7 +149,12 @@ app.get('/session-data', (req, res) => {
     });
   } else {
     res.json({
-      user: req.user
+      user: {
+        id: req.user.id,
+        username: req.user.username,
+        email: req.user.email,
+        avatar_url: req.user.avatar_url
+      }
     });
   }
 });
@@ -133,13 +162,15 @@ app.get('/session-data', (req, res) => {
 //////////////////////////////////////////////////
 // Get user's public info                       //
 //////////////////////////////////////////////////
-app.get("/user/:username", async (req, res) => {
+app.get("/private-user-data/:username", async (req, res) => {
   const { username } = req.params;
+
   try {
-      const rows = await db.get_verified_users({
+    // Fetch all fields (including private data like email)
+    const rows = await db.get_verified_users({
       queryType: "username",
       filter: username,
-      fields: ['username', 'email']
+      fields: ['*']
     });
 
     if (rows.length === 0) {
@@ -148,24 +179,222 @@ app.get("/user/:username", async (req, res) => {
       });
     } else {
       res.json({
-        user: req.user,
-        data: rows,
+        user: rows[0],
         error: null
       });
     }
-  } 
-  catch (error) {
-    console.error("Error fetching user profile:", error.message);
+  } catch (error) {
+    console.error("Error fetching private user profile:", error.message);
     res.json({
       error: 'Internal Server Error'
     });
   }
 });
 
+// app.get("/public-user-data/:username", async (req, res) => {
+//   const { username } = req.params;
+//   try {
+//     const rows = await db.get_verified_users({
+//       queryType: "username",
+//       filter: username,
+//       fields: ['username', 'name', 'bio', 'avatar', 'followers', 'following', 'recipeCount']
+//     });
+
+//     if (rows.length === 0) {
+//       res.json({
+//         error: "User not found"
+//       });
+//     } else {
+//       res.json({
+//         user: rows[0],  // Assuming rows[0] has the user data
+//         error: null
+//       });
+//     }
+//   } catch (error) {
+//     console.error("Error fetching public user profile:", error.message);
+//     res.json({
+//       error: 'Internal Server Error'
+//     });
+//   }
+// });
+
+app.post("/:username/update-settings", async (req, res) => {
+  const username = req.params.username;
+  const newData = req.body;
+
+  try {
+    // Call the database method
+    const success = await db.update_user_by_username(username, newData);
+
+    if (success) {
+      req.user.username = newData.username;
+      req.user.avatar_url = newData.avatar_url;
+      req.user.email = newData.email;
+      // req.user.password = newData.password;
+      res.status(200).json({ message: "User settings updated successfully.", user: req.user });
+    } else {
+      res.status(404).json({ error: "User not found or nothing to update." });
+    }
+  } catch (error) {
+    console.error("Error updating user settings:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+app.post('/upload-image', upload.single('image'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'No file uploaded' });
+  }
+
+  const previousImage = req.body.previous_image_url;
+  if (previousImage) {
+    const previousImagePath = path.join(__dirname, 'uploads', previousImage);
+    fs.unlink(previousImagePath, (err) => {
+      if (err) {
+        console.error('Error deleting previous image:', err);
+      } else {
+        console.log('Previous image deleted:', previousImage);
+      }
+    });
+  }
+
+  const imageUrl = `${req.file.filename}`;
+  res.json({ message: 'Upload successful', imageUrl });
+});
+
+app.post('/create-recipe', async (req, res) => {
+  const { title, description, imageUrl, difficulty, prepTime, cookTime, servings, calories, authorUsername, createdAt, isSpinoff, ingredients, instructions, tags } = req.body;
+
+  // Validate inputs as needed (e.g., check if required fields are present)
+  if (!title || !description || !authorUsername) {
+    return res.status(400).json({ error: 'Title, description, and authorUsername are required' });
+  }
+
+  try {
+    await db.create_recipe({
+      title,
+      description,
+      imageUrl,
+      difficulty,
+      prepTime,
+      cookTime,
+      servings,
+      calories,
+      authorUsername,
+      createdAt,
+      isSpinoff,
+      ingredients,
+      instructions,
+      tags
+    }, (error, recipeId) => {
+      if (error) {
+        return res.status(500).json({ error: 'Failed to create recipe' });
+      }
+      res.status(201).json({ message: 'Recipe created successfully', recipeId });
+    });
+  } catch (error) {
+    console.error('Error handling create-recipe route:', error);
+    res.status(500).json({ error: 'An error occurred' });
+  }
+});
+
+app.get("/get-tags", async (req, res) => {
+  try {
+    const tags = await db.get_tags();
+    res.json(tags);
+  } catch (error) {
+    console.error("Error fetching tags:", error);
+    res.status(500).json({ error: "Failed to fetch tags" });
+  }
+});
+
+// TODO: generate slug from recipe name
+app.get("/:username/recipes/:recipe_slug", async (req, res) => {
+  const { username, recipe_slug } = req.params;
+
+  try {
+    const rows = await db.get_user_recipe(username, recipe_slug);
+
+    if (rows.length === 0) {
+      res.json({
+        error: "recipe not found"
+      });
+    }
+    else {
+      res.json({
+        data: rows[0]
+      });
+    }
+  }
+  catch (error) {
+    console.error("Error fetching recipe:", error.message);
+    res.json({
+      error: 'Internal Server Error'
+    });
+  }
+});
+
+app.get("/recipes", async function (req, res) {
+  const query = req.query;
+
+  // Extract query params
+  const tags = query.tags ? query.tags.split(',') : null;
+  const title = query.title || null;
+  const cookTime = query.cookTime || null;
+  const average_rating = query.average_rating || null;
+  const user = query.user || null;
+  const difficulty = query.difficulty || null;
+  const sortType = query.sort || null;
+  const limit = query.limit || null;
+
+  // console.log("Query:", query);
+  // console.log("Tags:", tags);
+  // console.log("Title:", title);
+  // console.log("Cook Time:", cookTime);
+  // console.log("Average Rating:", average_rating);
+
+  try {
+    // Build filter object dynamically
+    // filters can be classified into three types:
+    // hard : must match or contain item exactly
+    // soft : use regex to match; sort by similarity
+    // sort : used for sorting
+    const filter = {};
+    if (tags) filter.tags = tags;
+    if (title) filter.title = title;
+    if (cookTime) filter.cook_time = cookTime;
+    if (average_rating) filter.average_rating = average_rating;
+    if (user) filter.user = user;
+    if (difficulty && difficulty != 'all') filter.difficulty = difficulty;
+
+    const rows = await db.get_recipes({
+      instructions: false,
+      ingredients: false,
+      reviews: false,
+      tags: true,
+      sortType: sortType,
+      filter: filter,
+      limit: limit,
+      fields: ['*']
+    });
+
+    res.json({
+      data: rows
+    });
+  } catch (error) {
+    console.error("Error fetching /recipes:", error.message);
+    res.status(500).json({
+      error: 'Internal Server Error'
+    });
+  }
+});
+
+
+
 //////////////////////////////////////////////////
 // Handle Signup POST request                   //
 //////////////////////////////////////////////////
-app.post('/register', async (req, res) => {
+app.post('/signup', async (req, res) => {
   const { username, email, password } = req.body;
 
   if (!username || !email || !password) {
@@ -175,10 +404,10 @@ app.post('/register', async (req, res) => {
   try {
     const user = new User({ username: username, email: email, password: password });
 
-    if (await user.is_username_unique(db)) {
-      return res.json({ error: "Username already taken", user: req.user });
-    } else if (await user.is_email_unique(db)) {
+    if (await user.is_email_unique(db)) {
       return res.json({ error: "Email already taken", user: req.user });
+    } else if (await user.is_username_unique(db)) {
+      return res.json({ error: "Username already taken", user: req.user });
     }
 
     await user.register(db, config.security.hashRounds, async function (verificationCode) {
@@ -291,6 +520,7 @@ app.post("/resend-verification", async (req, res) => {
   }
 });
 
+
 // Set up Passport authentication
 passport.use(
   "local",
@@ -326,83 +556,6 @@ passport.deserializeUser((user, cb) => cb(null, user));
 
 // deleted users from unverified_users table after 7 days
 db.refresh_unverified_users();
-
-//////////////////////////////////////////////////
-// Get recipe info                              //
-//////////////////////////////////////////////////
-
-app.get("/:username/:recipename", async (req, res) => {
-  const { username } = req.params;
-  const { recipename } = req.params;
-  try{
-    const rows = await db.get_user_recipe({
-      queryType: "name",
-      filter: [recipename, username], 
-      fields: ["id", "name", "creator"]
-    });
-
-    if (rows.length === 0){
-      res.json({
-        error: "recipe not found"
-      });
-    }
-    else {
-      res.json({
-        data: rows
-      });
-    }
-  }
-  catch (error)
-  {
-    console.error("Error fetching user profile:", error.message);
-    res.json({
-      error: 'Internal Server Error'
-    });
-  }
-});
-
-app.get("/recipes", async function(req, res){
-  const query = req.query;
-  const tags = query.tags.split(','); //swap the ',' with what your using for the serperator
-  const title = query.title;
-  const cookTime = query.cookTime;
-  const average_rating = query.average_rating;
-  if(query === undefined){
-    res.json({
-      error: 'incorrect call try /recipe/?tag={value}'
-    });
-  }
-  console.log(query)
-  console.log(tags)
-  console.log(title)
-  console.log(cookTime)
-  console.log(average_rating)
-  try{
-    const rows = await db.get_tag_recipes({
-      queryType: "",
-      filter: [tags, title, cookTime, average_rating],
-      fields: ["id", "title", "cookTime"]
-    });
-
-    if (rows.length === 0){
-      res.json({
-        error: "recipe not found"
-      });
-    }
-    else{
-      res.json({
-        data: "This is some test Data",
-        data: rows
-      });
-    }
-  }
-  catch (error){
-    console.error("Error fetching /recipe/?tag={}:", error.message);
-    res.json({
-      error: 'Internal Server Error Keto'
-    });
-  }
-});
 
 //////////////////////////////////////////////////
 // Run Server                                   //
