@@ -17,6 +17,10 @@ const RecipeDetail = ({ user }) => {
   // TODO
   const [newServingCount, setNewServingCount] = useState(1);
 
+  // handles review
+  const [reviewRating, setReviewRating] = useState(null);
+  const [reviewComment, setReviewComment] = useState('');
+
   const toggleSelection = (ingredient) => {
     const newSelectedItems = new Set(selectedItems);
     if (newSelectedItems.has(ingredient)) {
@@ -61,6 +65,62 @@ const RecipeDetail = ({ user }) => {
     fetchRecipe();
   }, [username, recipe_slug]);
 
+  useEffect(() => {
+    const checkIfLiked = async () => {
+      if (!user || !user?.username || !recipe?.slug) return;
+
+      try {
+        const res = await fetch(`http://localhost:5000/has-liked?username=${user.username}&recipe_slug=${recipe.slug}`);
+        const data = await res.json();
+        if (data.liked !== undefined) {
+          setIsFavorite(data.liked);
+        }
+      } catch (error) {
+        console.error("Error checking like status:", error);
+      }
+    };
+
+    checkIfLiked();
+  }, [user?.username, recipe?.slug]);
+
+
+  const submitReview = async () => {
+    if (user == null) {
+      alert("You must be logged in to leave a comment!");
+      return;
+    } else if (reviewComment == '') {
+      alert("Please type a message for your review!");
+      return;
+    }
+
+    setError(null);
+    try {
+      const res = await fetch('http://localhost:5000/submit-review', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          comment: reviewComment,
+          rating: reviewRating - 1,
+          user_id: user.id,
+          recipe_slug: recipe.slug
+        }),
+      });
+
+      if (!res.ok) throw new Error('Failed to fetch');
+
+      const json = await res.json();
+      setReviewComment('');
+      setReviewRating(null);
+      window.location.reload();
+
+    } catch (err) {
+      console.error('Error fetching recipe:', err);
+      setError(true);
+    }
+  };
+
 
   if (loading) {
     return (
@@ -85,14 +145,55 @@ const RecipeDetail = ({ user }) => {
     );
   }
 
-  const handleToggleFavorite = () => {
-    setIsFavorite(!isFavorite);
-    // TODO: save this state to the user's profile
+  const handleToggleLike = async () => {
+    if (user == null) {
+      alert("You cannot like recipes unless you are logged in.");
+      return;
+    } else if (user.username == recipe.author_name) {
+      alert("You cannot like your own recipe!");
+      return;
+    }
+
+    const newLikeState = !isFavorite;
+    setIsFavorite(newLikeState);
+
+    try {
+      const response = await fetch('http://localhost:5000/toggle-like', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: user.username,
+          recipe_slug: recipe.slug,
+          like: newLikeState
+        })
+      });
+
+      const data = await response.json();
+
+      setRecipe(prev => ({
+        ...prev,
+        likes: data.likes
+      }));
+
+
+      if (data.error) {
+        console.error("Server error:", data.error);
+        // Revert the state on error
+        setIsFavorite(!newLikeState);
+      }
+    } catch (err) {
+      console.error("Failed to toggle like:", err);
+      // Revert the state on error
+      setIsFavorite(!newLikeState);
+    }
   };
+
 
   const handleShareRecipe = () => {
     // TODO: implement social sharing functionality
-    alert('Sharing functionality would be implemented here!');
+    alert('Sharing functionality is not implemented yet!');
   };
 
   const handleServingCountChange = (e) => {
@@ -109,9 +210,9 @@ const RecipeDetail = ({ user }) => {
       <div className="mb-10">
         <div className="flex items-center justify-between mt-2 mb-3 sm:mt-0">
           <div className="flex items-center space-x-2">
-            <p className="flex items-center h-full">28 likes</p>
+            <p className="flex items-center h-full">{recipe.likes}</p>
             <button
-              onClick={handleToggleFavorite}
+              onClick={handleToggleLike}
               className={`p-2 h-10 w-10 flex items-center justify-center rounded-full border ${isFavorite
                 ? "bg-red-50 border-red-200 text-red-500"
                 : "border-gray-200 text-gray-400 hover:text-red-500"
@@ -167,7 +268,11 @@ const RecipeDetail = ({ user }) => {
 
         {/* Author & Date */}
         <div className="flex items-center text-sm text-gray-500 mb-2">
-          <span className="mr-2">By {recipe.author_name}</span>
+          <Link
+            to={`/user/${recipe.author_name}`}
+            className="hover:text-gray-500 underline text-gray-700 text-sm px-3 py-1 transition-colors"
+          ><span className="mr-2">By {recipe.author_name}</span>
+          </Link>
           <span>•</span>
           <span className="ml-2">
             {new Date(recipe.created_at).toLocaleDateString('en-US', {
@@ -208,9 +313,9 @@ const RecipeDetail = ({ user }) => {
           {/* Instructions */}
           <div className="bg-white rounded-lg p-6 shadow-sm mb-8">
             <h2 className="text-xl font-semibold mb-4 flex items-center">
-              <span className="bg-recipe-100 text-recipe-600 w-8 h-8 rounded-full inline-flex items-center justify-center mr-2">
+              {/* <span className="bg-recipe-100 text-recipe-600 w-8 h-8 rounded-full inline-flex items-center justify-center mr-2">
                 <span>2</span>
-              </span>
+              </span> */}
               Instructions
             </h2>
             <ol className="space-y-6">
@@ -262,20 +367,31 @@ const RecipeDetail = ({ user }) => {
               <h3 className="text-lg font-medium mb-4">Leave a Review</h3>
               <div className="flex items-center mb-4">
                 <span className="mr-2">Rating:</span>
-                <div className="flex">
+                <div className="flex reviewRatingStars">
                   {[...Array(5)].map((_, i) => (
-                    <button key={i} className="text-gray-300 hover:text-spice-400">
-                      <Star className="h-5 w-5" />
+                    <button
+                      key={i}
+                      onClick={() => {
+                        setReviewRating(i + 1);
+                      }}
+                      className="hover:text-spice-400"
+                    >
+                      <Star
+                        className={`h-5 w-5 ${i < reviewRating ? "text-yellow-400 fill-current" : "text-gray-300"
+                          }`}
+                      />
                     </button>
                   ))}
                 </div>
               </div>
+
               <textarea
                 placeholder="Write your review..."
                 className="w-full p-3 border border-gray-300 rounded-md focus:ring-recipe-500 focus:border-recipe-500"
                 rows={3}
+                onChange={(e) => setReviewComment(e.target.value)}
               ></textarea>
-              <button className="mt-3 bg-recipe-500 text-white px-4 py-2 rounded-md hover:bg-recipe-600 transition-colors">
+              <button onClick={submitReview} className="mt-3 bg-recipe-500 text-white px-4 py-2 rounded-md hover:bg-recipe-600 transition-colors">
                 Submit Review
               </button>
             </div>
@@ -286,9 +402,9 @@ const RecipeDetail = ({ user }) => {
         <div className="order-0 lg:order-none">
           <div className="bg-white rounded-lg p-6 shadow-sm sticky top-4">
             <h2 className="text-xl font-semibold mb-4 flex items-center">
-              <span className="bg-recipe-100 text-recipe-600 w-8 h-8 rounded-full inline-flex items-center justify-center mr-2">
+              {/* <span className="bg-recipe-100 text-recipe-600 w-8 h-8 rounded-full inline-flex items-center justify-center mr-2">
                 <span>1</span>
-              </span>
+              </span> */}
               Ingredients
               <span className="ml-auto text-sm text-gray-500 font-normal">
                 For {recipe.servings} servings

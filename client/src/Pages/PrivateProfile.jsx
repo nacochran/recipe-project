@@ -89,7 +89,6 @@ function PrivateProfile({ user }) {
   const profileLinks = [
     { label: "My Recipes", icon: ChefHat, path: "/profile/recipes" },
     { label: "Meal Planner", icon: Calendar, path: "/profile/meal-planner" },
-    { label: "Favorites", icon: Heart, path: "/profile/favorites" },
     { label: "Settings", icon: Settings, path: "/profile/settings" }
   ];
 
@@ -220,20 +219,19 @@ function PrivateProfile({ user }) {
           <div className="bg-white rounded-lg shadow-md p-6 mb-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold text-gray-800">Your Stats</h2>
-              <Link to="/profile/meal-planner" className="text-sm text-recipe-600 hover:underline">View All</Link>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div className="bg-recipe-50 p-4 rounded-lg text-center">
                 <Calendar className="w-6 h-6 mx-auto mb-2 text-recipe-500" />
-                <div className="text-xl font-bold text-recipe-700">{stats.mealPlanStats.plannedMeals}</div>
+                <div className="text-xl font-bold text-recipe-700">{"?"}</div>
                 <div className="text-xs text-gray-600">Planned Meals</div>
               </div>
 
               <div className="bg-spice-50 p-4 rounded-lg text-center">
                 <Clock className="w-6 h-6 mx-auto mb-2 text-spice-500" />
-                <div className="text-xl font-bold text-spice-700">{stats.mealPlanStats.streak}</div>
-                <div className="text-xs text-gray-600">Day Streak</div>
+                <div className="text-xl font-bold text-spice-700">{new Date(profile.joined_date).toISOString().split("T")[0]}</div>
+                <div className="text-xs text-gray-600">Member Since</div>
               </div>
 
               <div className="bg-blue-50 p-4 rounded-lg text-center">
@@ -244,19 +242,9 @@ function PrivateProfile({ user }) {
 
               <div className="bg-purple-50 p-4 rounded-lg text-center">
                 <Heart className="w-6 h-6 mx-auto mb-2 text-purple-500" />
-                <div className="text-xl font-bold text-purple-700">{profile.favorites}</div>
-                <div className="text-xs text-gray-600">Favorites</div>
+                <div className="text-xl font-bold text-purple-700">{profile.total_likes}</div>
+                <div className="text-xs text-gray-600">Likes</div>
               </div>
-            </div>
-
-            <div className="mt-6">
-              <Link
-                to="/profile/meal-planner"
-                className="w-full bg-recipe-500 text-white py-2 px-4 rounded-md flex items-center justify-center hover:bg-recipe-600 transition-colors"
-              >
-                <PlusCircle className="w-5 h-5 mr-2" />
-                Plan Next Week's Meals
-              </Link>
             </div>
           </div>
 
@@ -317,7 +305,7 @@ function PrivateProfile({ user }) {
                     <div className="ml-3 flex-grow">
                       <h3 className="text-md font-bold text-gray-800">{recipe.name}</h3>
                       <p className="text-sm text-gray-600 line-clamp-2">{recipe.description}</p>
-                      <p className="text-xs text-gray-500 mt-1">❤️ {recipe.likes || 0} likes</p>
+                      <p className="text-xs text-gray-500 mt-1">❤️ {recipe.likes} likes</p>
                     </div>
                   </Link>
                 ))

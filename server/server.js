@@ -191,32 +191,34 @@ app.get("/private-user-data/:username", async (req, res) => {
   }
 });
 
-// app.get("/public-user-data/:username", async (req, res) => {
-//   const { username } = req.params;
-//   try {
-//     const rows = await db.get_verified_users({
-//       queryType: "username",
-//       filter: username,
-//       fields: ['username', 'name', 'bio', 'avatar', 'followers', 'following', 'recipeCount']
-//     });
+app.get("/public-user-data/:username", async (req, res) => {
+  const { username } = req.params;
 
-//     if (rows.length === 0) {
-//       res.json({
-//         error: "User not found"
-//       });
-//     } else {
-//       res.json({
-//         user: rows[0],  // Assuming rows[0] has the user data
-//         error: null
-//       });
-//     }
-//   } catch (error) {
-//     console.error("Error fetching public user profile:", error.message);
-//     res.json({
-//       error: 'Internal Server Error'
-//     });
-//   }
-// });
+  try {
+    // Fetch all fields (including private data like email)
+    const rows = await db.get_verified_users({
+      queryType: "username",
+      filter: username,
+      fields: ['*']
+    });
+
+    if (rows.length === 0) {
+      res.json({
+        error: "User not found"
+      });
+    } else {
+      res.json({
+        user: rows[0],
+        error: null
+      });
+    }
+  } catch (error) {
+    console.error("Error fetching private user profile:", error.message);
+    res.json({
+      error: 'Internal Server Error'
+    });
+  }
+});
 
 app.post("/:username/update-settings", async (req, res) => {
   const username = req.params.username;
@@ -389,7 +391,72 @@ app.get("/recipes", async function (req, res) {
   }
 });
 
+app.post('/toggle-like', async (req, res) => {
+  const { username, recipe_slug, like } = req.body;
 
+  try {
+    const updated_data = await db.toggle_like({ username: username, recipe_slug: recipe_slug, like: like });
+    res.json({ error: null, user: req.user, likes: updated_data.likes });
+  } catch (error) {
+    console.error("Error in /toggle-like", error.message);
+    res.json({ error: "Internal server error", user: req.user });
+  }
+});
+
+app.post('/toggle-follow', async (req, res) => {
+  const { follower_username, followee_username, following_state } = req.body;
+
+  try {
+    const updated_data = await db.toggle_follow({ follower_username: follower_username, followee_username: followee_username, following_state: following_state });
+    res.json({ error: null, followers_count: updated_data.followers_count });
+  } catch (error) {
+    console.error("Error in /toggle-follow", error.message);
+    res.json({ error: "Internal server error", user: req.user });
+  }
+});
+
+// checks if a user has liked a recipe or not
+app.get('/has-liked', async (req, res) => {
+  const { username, recipe_slug } = req.query;
+
+  try {
+    const is_liked = await db.is_liked_by_user({ username: username, recipe_slug: recipe_slug });
+
+    res.json({ liked: is_liked });
+  } catch (error) {
+    console.error("Error in /has-liked:", error.message);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+app.get('/is-following-user', async (req, res) => {
+  const { follower_username, followee_username } = req.query;
+
+  try {
+    const is_following = await db.is_followed_by_user({ follower_username: follower_username, followee_username: followee_username });
+
+    res.json({ is_following: is_following });
+  } catch (error) {
+    console.error("Error in /is-following-user", error.message);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+app.post('/submit-review', async (req, res) => {
+  const { comment, rating, user_id, recipe_slug } = req.body;
+
+  if (!comment || !rating || !user_id || !recipe_slug) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+
+  try {
+    await db.add_review({ comment, rating, user_id, recipe_slug });
+    res.status(200).json({ message: 'Review submitted successfully' });
+  } catch (err) {
+    console.error('Error submitting review:', err.message);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
 //////////////////////////////////////////////////
 // Handle Signup POST request                   //
@@ -520,6 +587,13 @@ app.post("/resend-verification", async (req, res) => {
   }
 });
 
+// update user stats at regular intervals
+db.update_count_stats();
+setInterval(() => {
+  db.update_count_stats();
+}, 2 * 60 * 60 * 1000); // 2 hours in milliseconds
+
+
 
 // Set up Passport authentication
 passport.use(
@@ -556,6 +630,7 @@ passport.deserializeUser((user, cb) => cb(null, user));
 
 // deleted users from unverified_users table after 7 days
 db.refresh_unverified_users();
+
 
 //////////////////////////////////////////////////
 // Run Server                                   //

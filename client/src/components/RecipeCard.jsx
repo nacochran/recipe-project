@@ -32,7 +32,7 @@ const RecipeCard = ({ recipe }) => {
           <div className="flex items-center justify-between mb-1">
             {/* Rating on the left */}
             <div className="flex items-center text-spice-400">
-              {recipe.average_rating > 0 && (<div><Star className="w-4 h-4 fill-current" />
+              {recipe.average_rating > 0 && (<div className="flex"><Star className="w-4 h-4 fill-current" />
                 <span className="ml-1 text-sm font-medium">{recipe.average_rating}</span></div>)}
               {recipe.average_rating == 0 && (<div><Star className="w-4 h-4 fill-stone-300 stroke-stone-300" /></div>)}
             </div>

@@ -383,7 +383,7 @@ function Settings({ user, setUser }) {
               <div>
                 <h2 className="text-xl font-semibold mb-4 text-red-600">Danger Zone</h2>
                 <div className="space-y-4">
-                  <Button type="button" variant="outline" className="border-red-500 text-red-500 hover:bg-red-50">
+                  <Button type="button" onClick={() => { alert("Not implemented yet."); }} variant="outline" className="border-red-500 text-red-500 hover:bg-red-50">
                     Delete Account
                   </Button>
                 </div>

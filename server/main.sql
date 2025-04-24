@@ -24,11 +24,11 @@ CREATE TABLE users (
     bio VARCHAR(1000) DEFAULT '',
     -- Stats
     joined_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    recipe_count INT DEFAULT 0,
     following_count INT DEFAULT 0,
     followers_count INT DEFAULT 0,
     total_likes INT DEFAULT 0,
     -- Settings
-    recipe_count INT DEFAULT 0,
     newsletter_notification BOOLEAN DEFAULT 0,
     comments_notification BOOLEAN DEFAULT 0,
     new_followers_notification BOOLEAN DEFAULT 0,
@@ -57,6 +57,14 @@ CREATE TABLE recipes (
   UNIQUE (title, creator)
 );
 
+CREATE TABLE likes (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  recipe_id INT,
+  user_id INT,
+  FOREIGN KEY (recipe_id) REFERENCES recipes (id),
+  FOREIGN KEY (user_id) REFERENCES users (id)
+);
+
 CREATE TABLE spinoffs (
   id INT AUTO_INCREMENT PRIMARY KEY,
   original_recipe_id INT NOT NULL,
@@ -64,11 +72,6 @@ CREATE TABLE spinoffs (
   FOREIGN KEY (original_recipe_id) REFERENCES recipes (id),
   FOREIGN KEY (derivative_recipe_id) REFERENCES recipes (id)
 );
-
--- CREATE TABLE ingredients (
---   id INT AUTO_INCREMENT PRIMARY KEY,
---   name VARCHAR(200) NOT NULL UNIQUE
--- );
 
 CREATE TABLE recipe_ingredients (
   id INT AUTO_INCREMENT PRIMARY KEY,
@@ -111,6 +114,16 @@ CREATE TABLE recipe_reviews (
   FOREIGN KEY (user_id) REFERENCES users (id),
   FOREIGN KEY (recipe_id) REFERENCES recipes(id)
 );
+
+CREATE TABLE follows (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  follower_id INT NOT NULL,
+  followee_id INT NOT NULL,
+  UNIQUE (follower_id, followee_id),
+  FOREIGN KEY (follower_id) REFERENCES users(id),
+  FOREIGN KEY (followee_id) REFERENCES users(id)
+);
+
 
 -- Insert Users
 INSERT INTO users (username, password, email, avatar_url, display_name, bio, joined_date) VALUES
@@ -246,5 +259,5 @@ INSERT INTO recipe_tags (recipe_id, tag_id) VALUES
 
 -- Insert Recipe Reviews
 INSERT INTO recipe_reviews (user_id, recipe_id, comment, rating, creation_date) VALUES
-(2, 1, "Best pancakes ever!", 5.0, "2025-02-10"),
-(3, 2, "Loved this chocolate cake, so rich!", 4.8, "2025-03-15");
+(2, 1, "Best pancakes ever!", 5, "2025-02-10"),
+(3, 2, "Loved this chocolate cake, so rich!", 4, "2025-03-15");

@@ -53,7 +53,6 @@ const RecipeForm = ({ existingRecipe = null, user }) => {
     fetchTags();
 
     // set image
-    console.log(existingRecipe.image_url);
     if (existingRecipe != null) {
       setImage(existingRecipe.image_url);
     }

@@ -59,6 +59,292 @@ export default class Database {
     return rows;
   }
 
+  async update_count_stats() {
+    try {
+      // STEP 1: Update recipe.likes based on count from likes table
+      const updateRecipeLikes = `
+        UPDATE recipes r
+        LEFT JOIN (
+          SELECT recipe_id, COUNT(*) AS like_count
+          FROM likes
+          GROUP BY recipe_id
+        ) l ON r.id = l.recipe_id
+        SET r.likes = IFNULL(l.like_count, 0)
+      `;
+      await this.db.query(updateRecipeLikes);
+      console.log("Recipe likes updated successfully.");
+
+      // STEP 2: Update recipe.average_rating based on average from reviews
+      const updateAverageRating = `
+        UPDATE recipes r
+        LEFT JOIN (
+          SELECT recipe_id, AVG(rating) AS avg_rating
+          FROM recipe_reviews
+          GROUP BY recipe_id
+        ) rev ON r.id = rev.recipe_id
+        SET r.average_rating = IFNULL(ROUND(rev.avg_rating, 2), 0)
+      `;
+      await this.db.query(updateAverageRating);
+      console.log("Recipe average ratings updated successfully.");
+
+      // STEP 3: Update user stats
+      const updateUserStats = `
+        UPDATE users u
+        LEFT JOIN (
+          SELECT creator, COUNT(*) AS recipe_count, IFNULL(SUM(likes), 0) AS total_likes
+          FROM recipes
+          GROUP BY creator
+        ) r ON u.id = r.creator
+        LEFT JOIN (
+          SELECT followee_id AS id, COUNT(*) AS followers_count
+          FROM follows
+          GROUP BY followee_id
+        ) f1 ON u.id = f1.id
+        LEFT JOIN (
+          SELECT follower_id AS id, COUNT(*) AS following_count
+          FROM follows
+          GROUP BY follower_id
+        ) f2 ON u.id = f2.id
+        SET 
+          u.recipe_count = IFNULL(r.recipe_count, 0),
+          u.total_likes = IFNULL(r.total_likes, 0),
+          u.followers_count = IFNULL(f1.followers_count, 0),
+          u.following_count = IFNULL(f2.following_count, 0)
+      `;
+      await this.db.query(updateUserStats);
+      console.log("User stats updated successfully.");
+
+    } catch (error) {
+      console.error("Failed to update stats:", error.message);
+    }
+  }
+
+  async add_review({ comment, rating, user_id, recipe_slug }) {
+    try {
+      const [[recipe]] = await this.db.query(
+        `SELECT id FROM recipes WHERE slug = ?`,
+        [recipe_slug]
+      );
+
+      if (!recipe) throw new Error("Recipe not found");
+
+      await this.db.query(
+        `INSERT INTO recipe_reviews (user_id, recipe_id, comment, rating, creation_date)
+         VALUES (?, ?, ?, ?, NOW())`,
+        [user_id, recipe.id, comment, rating]
+      );
+
+      // Optionally update average_rating in the recipe table
+      await this.db.query(
+        `UPDATE recipes SET average_rating = (
+           SELECT AVG(rating) FROM recipe_reviews WHERE recipe_id = ?
+         ) WHERE id = ?`,
+        [recipe.id, recipe.id]
+      );
+
+      console.log("Review added successfully.");
+    } catch (err) {
+      console.error("Error in add_review:", err.message);
+      throw err;
+    }
+  }
+
+
+
+  async toggle_like({ username, recipe_slug, like = true }) {
+    try {
+      const [[user]] = await this.db.query(
+        `SELECT id FROM users WHERE username = ?`,
+        [username]
+      );
+      const [[recipe]] = await this.db.query(
+        `SELECT id, creator FROM recipes WHERE slug = ?`,
+        [recipe_slug]
+      );
+
+      if (!user || !recipe) {
+        throw new Error("User or recipe not found.");
+      }
+
+      const userId = user.id;
+      const recipeId = recipe.id;
+
+      // Check if a like already exists
+      const [[existingLike]] = await this.db.query(
+        `SELECT 1 FROM likes WHERE user_id = ? AND recipe_id = ?`,
+        [userId, recipeId]
+      );
+
+      if (like) {
+        if (!existingLike) {
+          await this.db.query(
+            `INSERT INTO likes (user_id, recipe_id) VALUES (?, ?)`,
+            [userId, recipeId]
+          );
+        } else {
+          // console.log(`User ${username} has already liked '${recipe_slug}'`);
+        }
+      } else {
+        if (existingLike) {
+          await this.db.query(
+            `DELETE FROM likes WHERE user_id = ? AND recipe_id = ?`,
+            [userId, recipeId]
+          );
+        } else {
+          // console.log(`User ${username} has not liked '${recipe_slug}' yet`);
+        }
+      }
+
+      // Update likes count on the recipe
+      await this.db.query(
+        `UPDATE recipes SET likes = (SELECT COUNT(*) FROM likes WHERE recipe_id = ?) WHERE id = ?`,
+        [recipeId, recipeId]
+      );
+
+      // Update total likes for the recipe creator
+      await this.db.query(`
+        UPDATE users u
+        JOIN (
+          SELECT creator, SUM(likes) AS total_likes
+          FROM recipes
+          GROUP BY creator
+        ) r ON u.id = r.creator
+        SET u.total_likes = r.total_likes
+      `);
+
+      // Fetch updated stats to return
+      const [[updatedRecipe]] = await this.db.query(
+        `SELECT likes FROM recipes WHERE id = ?`,
+        [recipeId]
+      );
+
+      const [[creatorStats]] = await this.db.query(
+        `SELECT total_likes FROM users WHERE id = ?`,
+        [recipe.creator]
+      );
+      return {
+        likes: updatedRecipe.likes,
+        creator_total_likes: creatorStats.total_likes,
+      };
+    } catch (error) {
+      console.error("Error in toggle_like:", error.message);
+      throw error;
+    }
+  }
+
+
+  async toggle_follow({ follower_username, followee_username, following_state = true }) {
+    try {
+      const [[follower]] = await this.db.query(
+        `SELECT id FROM users WHERE username = ?`,
+        [follower_username]
+      );
+      const [[followee]] = await this.db.query(
+        `SELECT id FROM users WHERE username = ?`,
+        [followee_username]
+      );
+
+      if (!follower || !followee) {
+        throw new Error("Follower or followee not found.");
+      }
+
+      const followerId = follower.id;
+      const followeeId = followee.id;
+
+      if (following_state) {
+        await this.db.query(
+          `INSERT IGNORE INTO follows (follower_id, followee_id) VALUES (?, ?)`,
+          [followerId, followeeId]
+        );
+      } else {
+        await this.db.query(
+          `DELETE FROM follows WHERE follower_id = ? AND followee_id = ?`,
+          [followerId, followeeId]
+        );
+      }
+
+      await this.db.query(
+        `UPDATE users SET followers_count = (SELECT COUNT(*) FROM follows WHERE followee_id = ?) WHERE id = ?`,
+        [followeeId, followeeId]
+      );
+
+      await this.db.query(
+        `UPDATE users SET following_count = (SELECT COUNT(*) FROM follows WHERE follower_id = ?) WHERE id = ?`,
+        [followerId, followerId]
+      );
+
+      const [[updatedFollowee]] = await this.db.query(
+        `SELECT followers_count FROM users WHERE id = ?`,
+        [followeeId]
+      );
+
+      const [[updatedFollower]] = await this.db.query(
+        `SELECT following_count FROM users WHERE id = ?`,
+        [followerId]
+      );
+
+      // console.log(`${follow ? "Followed" : "Unfollowed"} ${followeeUsername} by ${followerUsername}`);
+      return {
+        followers_count: updatedFollowee.followers_count,
+        following_count: updatedFollower.following_count,
+      };
+    } catch (error) {
+      console.error("Error in toggle_follow:", error.message);
+      throw error;
+    }
+  }
+
+  async is_liked_by_user({ username, recipe_slug }) {
+    const [[user]] = await this.db.query(
+      `SELECT id FROM users WHERE username = ?`,
+      [username]
+    );
+    const [[recipe]] = await this.db.query(
+      `SELECT id FROM recipes WHERE slug = ?`,
+      [recipe_slug]
+    );
+
+    if (!user || !recipe) {
+      return res.status(404).json({ liked: false });
+    }
+
+    const [[like]] = await this.db.query(
+      `SELECT 1 FROM likes WHERE user_id = ? AND recipe_id = ? LIMIT 1`,
+      [user.id, recipe.id]
+    );
+
+    return !!like;
+  }
+
+  async is_followed_by_user({ follower_username, followee_username }) {
+    try {
+      // Get user IDs based on usernames
+      const [[follower]] = await this.db.query(
+        `SELECT id FROM users WHERE username = ?`,
+        [follower_username]
+      );
+      const [[followee]] = await this.db.query(
+        `SELECT id FROM users WHERE username = ?`,
+        [followee_username]
+      );
+
+      if (!follower || !followee) {
+        throw new Error("Follower or followee not found.");
+      }
+
+      // Check if a follow relationship exists
+      const [[follow]] = await this.db.query(
+        `SELECT 1 FROM follows WHERE follower_id = ? AND followee_id = ? LIMIT 1`,
+        [follower.id, followee.id]
+      );
+
+      return !!follow; // convert to boolean
+    } catch (error) {
+      console.error("Error in is_followed_by_user:", error.message);
+      throw error;
+    }
+  }
+
   async is_username_registered(username) {
     const rows1 = await this.get_verified_users({ queryType: 'username', filter: username, fields: ['username'] });
     const rows2 = await this.get_unverified_users({ queryType: 'username', filter: username, fields: ['username'] });
