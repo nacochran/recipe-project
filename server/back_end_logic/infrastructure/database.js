@@ -49,7 +49,6 @@ export default class Database {
       return null;
     }
 
-
     const infoFields = config.fields.join(',');
 
     const query = `SELECT ${infoFields} FROM unverified_users WHERE ${config.queryType} = ?`;
@@ -149,8 +148,6 @@ export default class Database {
     }
   }
 
-
-
   async toggle_like({ username, recipe_slug, like = true }) {
     try {
       const [[user]] = await this.db.query(
@@ -231,7 +228,6 @@ export default class Database {
       throw error;
     }
   }
-
 
   async toggle_follow({ follower_username, followee_username, following_state = true }) {
     try {
@@ -572,6 +568,78 @@ export default class Database {
     }
   }
 
+  async edit_recipe(recipeId, config, cb) {
+    const connection = await this.db.getConnection();
+    await connection.beginTransaction();
+
+    try {
+      // Update the main recipe table
+      await connection.query(
+        `UPDATE recipes
+         SET title = ?, slug = ?, description = ?, image_url = ?, difficulty = ?, prep_time = ?, cook_time = ?, servings = ?, cal_count = ?, is_spinoff = ?
+         WHERE id = ?`,
+        [
+          config.title,
+          config.title.toLowerCase().replace(/\s+/g, "_"),
+          config.description,
+          config.imageUrl,
+          config.difficulty,
+          config.prepTime,
+          config.cookTime,
+          config.servings,
+          config.calories,
+          config.isSpinoff || false,
+          recipeId
+        ]
+      );
+
+      // Delete existing ingredients, instructions, and tags
+      await connection.query("DELETE FROM recipe_ingredients WHERE recipe_id = ?", [recipeId]);
+      await connection.query("DELETE FROM recipe_instructions WHERE recipe_id = ?", [recipeId]);
+      await connection.query("DELETE FROM recipe_tags WHERE recipe_id = ?", [recipeId]);
+
+      // Re-insert ingredients
+      if (config.ingredients && config.ingredients.length > 0) {
+        for (let ingredient of config.ingredients) {
+          await connection.query(
+            "INSERT INTO recipe_ingredients (recipe_id, ingredient_name, quantity, unit_type) VALUES (?, ?, ?, ?)",
+            [recipeId, ingredient.name, ingredient.quantity, ingredient.unit]
+          );
+        }
+      }
+
+      // Re-insert instructions
+      if (config.instructions && config.instructions.length > 0) {
+        for (let i = 0; i < config.instructions.length; i++) {
+          await connection.query(
+            "INSERT INTO recipe_instructions (recipe_id, instruction_number, instruction_text) VALUES (?, ?, ?)",
+            [recipeId, config.instructions[i].id, config.instructions[i].text]
+          );
+        }
+      }
+
+      // Re-insert tags
+      if (config.tags && config.tags.length > 0) {
+        for (let tag of config.tags) {
+          const [tagResult] = await connection.query("SELECT id FROM tags WHERE label = ?", [tag]);
+          if (tagResult.length > 0) {
+            await connection.query("INSERT INTO recipe_tags (recipe_id, tag_id) VALUES (?, ?)", [recipeId, tagResult[0].id]);
+          }
+        }
+      }
+
+      await connection.commit();
+      cb(null, recipeId);
+    } catch (error) {
+      await connection.rollback();
+      console.error("Error editing recipe:", error);
+      cb(error, null);
+    } finally {
+      connection.release();
+    }
+  }
+
+
   async get_tags(id) {
     if (id) {
       const [rows] = await this.db.query(
@@ -791,7 +859,6 @@ export default class Database {
 
     return enrichedRecipes;
   }
-
 
   refresh_unverified_users() {
     setInterval(async () => {

@@ -300,6 +300,28 @@ app.post('/create-recipe', async (req, res) => {
   }
 });
 
+app.post('/edit-recipe', async (req, res) => {
+  const recipe = req.body;
+
+  if (!recipe.id || !recipe.title || !recipe.description) {
+    return res.status(400).json({ error: 'Recipe ID, title, and description are required' });
+  }
+
+  try {
+    await db.edit_recipe(recipe.id, recipe, (error) => {
+      if (error) {
+        return res.status(500).json({ error: 'Failed to update recipe' });
+      }
+      res.status(200).json({ message: 'Recipe updated successfully' });
+    });
+  } catch (error) {
+    console.error('Error handling edit-recipe route:', error);
+    res.status(500).json({ error: 'An error occurred' });
+  }
+});
+
+
+
 app.get("/get-tags", async (req, res) => {
   try {
     const tags = await db.get_tags();

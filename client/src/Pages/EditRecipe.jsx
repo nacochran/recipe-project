@@ -45,7 +45,7 @@ const EditRecipe = ({ user }) => {
 
   return (
     <div className="recipe-container">
-      <RecipeForm existingRecipe={recipe} />
+      <RecipeForm existingRecipe={recipe} user={user} />
     </div>
   );
 };
