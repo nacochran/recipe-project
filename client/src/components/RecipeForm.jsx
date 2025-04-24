@@ -19,8 +19,6 @@ const RecipeForm = ({ existingRecipe = null, user }) => {
   const navigate = useNavigate();
   const isEditing = !!existingRecipe;
 
-  console.log("Testing existing recipe: ", existingRecipe.instructions);
-
   // Form state
   const [title, setTitle] = useState(existingRecipe?.title || '');
   const [description, setDescription] = useState(existingRecipe?.description || '');
@@ -144,36 +142,34 @@ const RecipeForm = ({ existingRecipe = null, user }) => {
 
     let uploadedImageUrl = null;
 
-    if (!imageFile && !existingRecipe && !existingRecipe.image_url) {
+    if (!imageFile) {
       alert("Please upload an image before submitting.");
       return;
-    } else if (!existingRecipe.image_url) {
-      // Upload image
-      const formData = new FormData();
-      formData.append('image', imageFile);
-
-      try {
-        const res = await fetch('http://localhost:5000/upload-image', {
-          method: 'POST',
-          body: formData,
-        });
-
-        const data = await res.json();
-
-        uploadedImageUrl = data.imageUrl;
-      } catch (err) {
-        console.error('Upload error:', err);
-        return;
-      }
     }
 
-    console.log(user);
+    // Upload image
+    const formData = new FormData();
+    formData.append('image', imageFile);
+
+    try {
+      const res = await fetch('http://localhost:5000/upload-image', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+
+      uploadedImageUrl = data.imageUrl;
+    } catch (err) {
+      console.error('Upload error:', err);
+      return;
+    }
 
     // Build the recipe object with the image URL
     const recipe = {
       id: existingRecipe?.id,
       title,
-      imageUrl: existingRecipe.image_url || uploadedImageUrl,
+      imageUrl: uploadedImageUrl,
       description: description,
       tags,
       calories,
@@ -182,14 +178,12 @@ const RecipeForm = ({ existingRecipe = null, user }) => {
       totalTime: (parseInt(prepTime, 10) || 0) + (parseInt(cookTime, 10) || 0),
       difficulty,
       servings: parseInt(servings, 10) || 2,
-      ingredients: ingredients.filter(ingredient => ingredient.ingredient_name !== ''),
-      instructions: instructions.filter(instruction => instruction.instruction_text !== ''),
+      ingredients: ingredients.filter(ingredient => ingredient.name.trim() !== ''),
+      instructions: instructions.filter(instruction => instruction.text.trim() !== ''),
       authorUsername: user.username,
       createdAt: existingRecipe?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
-
-    console.log("Testing recipe: ", recipe);
 
     // Then POST recipe
     try {
