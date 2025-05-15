@@ -1,13 +1,13 @@
 # Recipe Project
 
-A web application for managing and sharing recipes, built with React, Node.js, and PostgreSQL.
+A web application for managing and sharing recipes, built with React, Node.js, and MySQL.
 
 ## Prerequisites
 
 Before you begin, ensure you have the following installed:
 - [VS Code](https://code.visualstudio.com/) (Recommended IDE)
 - [Node.js and NPM](https://nodejs.org/)
-- [PostgreSQL](https://www.postgresql.org/download/)
+- [MySQL](https://dev.mysql.com/downloads/mysql/) (Make sure to save your username and password during installation!)
 - [Git](https://git-scm.com/)
 - [Github Desktop](https://desktop.github.com/) (Optional, but recommended for easier merge conflict resolution)
 
@@ -22,9 +22,9 @@ cd recipe-project
 
 ### 2. Database Setup
 
-1. Open PostgreSQL and login using:
+1. Open MySQL command line client and login using:
 ```bash
-psql -U your_username
+mysql -u your_username -p
 ```
 
 2. Create a new database named `recipe_db`:
@@ -34,7 +34,7 @@ CREATE DATABASE recipe_db;
 
 3. Import the database schema (contact project maintainers for the latest schema file)
 ```bash
-\i path/to/main.sql
+mysql -u your_username -p recipe_db < path/to/main.sql
 ```
 
 ### 3. Environment Configuration
