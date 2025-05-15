@@ -85,8 +85,12 @@ const RecipeDetail = ({ user }) => {
 
 
   const submitReview = async () => {
+    // TODO: ensure that you cannot leave multiple reviews on the same recipe
     if (user == null) {
       alert("You must be logged in to leave a comment!");
+      return;
+    } else if (user.username == recipe.author_name) {
+      alert("You cannot leave a review on your own recipe!");
       return;
     } else if (reviewComment == '') {
       alert("Please type a message for your review!");
@@ -102,7 +106,7 @@ const RecipeDetail = ({ user }) => {
         },
         body: JSON.stringify({
           comment: reviewComment,
-          rating: reviewRating - 1,
+          rating: reviewRating,
           user_id: user.id,
           recipe_slug: recipe.slug
         }),

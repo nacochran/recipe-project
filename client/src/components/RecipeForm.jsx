@@ -142,9 +142,11 @@ const RecipeForm = ({ existingRecipe = null, user }) => {
 
     let uploadedImageUrl = null;
 
-    if (!imageFile) {
+    if (!imageFile && !existingRecipe && !existingRecipe.image_url) {
       alert("Please upload an image before submitting.");
       return;
+    } else if (!existingRecipe && !existingRecipe.image_url) {
+      // todo: 
     }
 
     // Upload image

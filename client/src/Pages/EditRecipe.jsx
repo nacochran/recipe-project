@@ -10,6 +10,10 @@ const EditRecipe = ({ user }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    alert("EDITING is still a WIP.");
+  }, []);
+
+  useEffect(() => {
     const fetchRecipe = async () => {
       setLoading(true);
       setError(false);
