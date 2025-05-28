@@ -224,13 +224,13 @@ function PrivateProfile({ user }) {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div className="bg-recipe-50 p-4 rounded-lg text-center">
                 <Calendar className="w-6 h-6 mx-auto mb-2 text-recipe-500" />
-                <div className="text-xl font-bold text-recipe-700">{"?"}</div>
+                <div className="text-xl font-bold text-recipe-700">{"0"}</div>
                 <div className="text-xs text-gray-600">Planned Meals</div>
               </div>
 
               <div className="bg-spice-50 p-4 rounded-lg text-center">
                 <Clock className="w-6 h-6 mx-auto mb-2 text-spice-500" />
-                <div className="text-xl font-bold text-spice-700">{new Date(profile.joined_date).toISOString().split("T")[0]}</div>
+                <div className="text-xl font-bold text-spice-700">{new Date().toISOString().split("T")[0].split("-")[0]}</div>
                 <div className="text-xs text-gray-600">Member Since</div>
               </div>
 

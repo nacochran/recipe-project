@@ -134,8 +134,6 @@ const RecipeForm = ({ existingRecipe = null, user }) => {
     setInstructions(newInstructions);
   };
 
-
-
   // Form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -584,7 +582,7 @@ const RecipeForm = ({ existingRecipe = null, user }) => {
           <Button
             type="button"
             variant="outline"
-            onClick={() => navigate('/profile/recipes')}
+            onClick={() => navigate(`/${existingRecipe.author_name}/recipes/${existingRecipe.slug}`)}
           >
             Cancel
           </Button>

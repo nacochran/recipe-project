@@ -4,7 +4,8 @@ import { useParams, Link } from 'react-router-dom';
 import { Clock, Users, Star, ChefHat, Tag, Share2, Heart } from 'lucide-react';
 import { Img } from "../components/ui/Img.jsx";
 import { Button } from "../components/ui/button.jsx";
-import { Pencil } from "lucide-react"
+import { Pencil } from "lucide-react";
+import { TrashIcon } from "lucide-react";
 
 const RecipeDetail = ({ user }) => {
   const { username, recipe_slug } = useParams();
@@ -39,6 +40,20 @@ const RecipeDetail = ({ user }) => {
       newCrossedOut.add(index); // Add to crossed-out set
     }
     setCrossedOut(newCrossedOut);
+  };
+
+  const trashRecipe = async () => {
+    try {
+      const response = await fetch(`http://localhost:5000/${username}/recipes/${recipe_slug}/delete`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch');
+      }
+      const json = await response.json();
+    } catch (err) {
+      console.error('Error fetching recipe:', err);
+    } finally {
+      // Navigate to area
+    }
   };
 
   useEffect(() => {
@@ -194,18 +209,9 @@ const RecipeDetail = ({ user }) => {
     }
   };
 
-
   const handleShareRecipe = () => {
     // TODO: implement social sharing functionality
     alert('Sharing functionality is not implemented yet!');
-  };
-
-  const handleServingCountChange = (e) => {
-    setNewServingCount(e.target.value);
-  };
-
-  const handleSetServingCount = () => {
-    alert('We will implement quantity adjustments here later!');
   };
 
   return (
@@ -242,6 +248,13 @@ const RecipeDetail = ({ user }) => {
             <Button asChild variant="ghost" size="icon" title="Edit Recipe">
               <Link to={`/profile/recipes/${recipe_slug}/edit`}>
                 <Pencil className="h-4 w-4" />
+              </Link>
+            </Button>
+          )}
+          {user?.username === username && (
+            <Button asChild variant="ghost" size="icon" title="Trash Recipe">
+              <Link onClick={trashRecipe} to={`.`}>
+                <TrashIcon className="h-4 w-4" />
               </Link>
             </Button>
           )}
@@ -454,10 +467,10 @@ const RecipeDetail = ({ user }) => {
               ))}
             </ul>
 
-            <button className="w-full bg-recipe-500 text-white py-2 rounded-md hover:bg-recipe-600 transition-colors mb-3">
+            <button onClick={() => { alert('Not implemented yet.'); }} className="w-full bg-recipe-500 text-white py-2 rounded-md hover:bg-recipe-600 transition-colors mb-3">
               Add to Shopping List
             </button>
-            <button className="w-full bg-spice-400 text-white py-2 rounded-md hover:bg-spice-500 transition-colors">
+            <button onClick={() => { alert('Not implemented yet.'); }} className="w-full bg-spice-400 text-white py-2 rounded-md hover:bg-spice-500 transition-colors">
               Add to Meal Plan
             </button>
           </div>

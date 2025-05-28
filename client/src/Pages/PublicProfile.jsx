@@ -185,7 +185,7 @@ function PublicProfile({ user }) {
       {/* Stats Section */}
       <div className="bg-white rounded-lg shadow-md p-6 mb-6 grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatBlock icon={<ChefHat />} label="Recipes" value={publicUser.recipe_count} color="text-recipe-600" bg="bg-recipe-50" />
-        <StatBlock icon={<Clock />} label="Member Since" value={new Date(publicUser.joined_date).toISOString().split("T")[0]} color="text-spice-500" bg="bg-spice-50" />
+        <StatBlock icon={<Clock />} label="Member Since" value={new Date().toISOString().split("T")[0].split("-")[0]} color="text-spice-500" bg="bg-spice-50" />
         <StatBlock icon={<Users />} label="Followers" value={publicUser.followers_count} color="text-blue-500" bg="bg-blue-50" />
         <StatBlock icon={<Heart />} label="Likes Received" value={publicUser.total_likes} color="text-purple-500" bg="bg-purple-50" />
       </div>
@@ -196,12 +196,12 @@ function PublicProfile({ user }) {
           <h2 className="text-2xl font-bold text-gray-800">
             {publicUser.display_name}'s Recipes
           </h2>
-          <Link
+          {/* <Link
             to={`/user/${username}/recipes`}
             className="text-sm text-recipe-600 hover:underline"
           >
             View all
-          </Link>
+          </Link> */}
         </div>
 
         {userRecipes.length > 0 ? (
