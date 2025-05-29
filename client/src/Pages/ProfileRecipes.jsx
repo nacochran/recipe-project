@@ -73,10 +73,13 @@ const ProfileRecipes = ({ user }) => {
       <Tabs defaultValue="all">
         {/* All Recipes Tab */}
         <TabsContent value="all">
+          {error && <div className="text-red-500 mb-4">{error}</div>}
+
           {recipes.length > 0 ? (
             <RecipeGrid
               recipes={recipes}
               emptyMessage="No recipes match your search."
+              loading={loading}
             />
           ) : (
             <div className="text-center py-16 bg-gray-50 rounded-lg">

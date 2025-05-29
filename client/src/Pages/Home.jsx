@@ -128,7 +128,13 @@ const Home = () => {
             </Link>
           </div>
 
-          <RecipeGrid recipes={featuredRecipesList} />
+          {error && <div className="text-red-500 mb-4">{error}</div>}
+
+          <RecipeGrid
+            recipes={featuredRecipesList}
+            emptyMessage="No featured recipes available at the moment."
+            loading={loading}
+          />
         </div>
       </section>
 

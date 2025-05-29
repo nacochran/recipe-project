@@ -320,8 +320,6 @@ app.post('/edit-recipe', async (req, res) => {
   }
 });
 
-
-
 app.get("/get-tags", async (req, res) => {
   try {
     const tags = await db.get_tags();
@@ -653,6 +651,45 @@ passport.deserializeUser((user, cb) => cb(null, user));
 // deleted users from unverified_users table after 7 days
 db.refresh_unverified_users();
 
+//////////////////////////////////////////////////
+// Recipe Management Routes                     //
+//////////////////////////////////////////////////
+
+app.post('/delete-recipe/:recipeId', async (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ error: 'Not authenticated' });
+  }
+
+  try {
+    const recipeId = req.params.recipeId;
+
+    // Verify that the user owns the recipe
+    const [recipe] = await db.db.query(
+      "SELECT creator FROM recipes WHERE id = ?",
+      [recipeId]
+    );
+
+    if (recipe.length === 0) {
+      return res.status(404).json({ error: 'Recipe not found' });
+    }
+
+    if (recipe[0].creator !== req.user.id) {
+      return res.status(403).json({ error: 'Not authorized to delete this recipe' });
+    }
+
+    // Delete the recipe
+    const success = await db.delete_recipe(recipeId);
+
+    if (success) {
+      res.json({ message: 'Recipe deleted successfully' });
+    } else {
+      res.status(404).json({ error: 'Recipe not found' });
+    }
+  } catch (error) {
+    console.error('Error deleting recipe:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
 //////////////////////////////////////////////////
 // Run Server                                   //

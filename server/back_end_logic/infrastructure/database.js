@@ -523,7 +523,7 @@ export default class Database {
           // console.log("Testing ingredient: ", ingredient);
           await connection.query(
             "INSERT INTO recipe_ingredients (recipe_id, ingredient_name, quantity, unit_type) VALUES (?, ?, ?, ?)",
-            [recipeId, ingredient.name, ingredient.quantity, ingredient.unit]
+            [recipeId, ingredient.ingredient_name, ingredient.quantity, ingredient.unit_type]
           );
           // }
         }
@@ -534,7 +534,7 @@ export default class Database {
         for (let i = 0; i < config.instructions.length; i++) {
           await connection.query(
             "INSERT INTO recipe_instructions (recipe_id, instruction_number, instruction_text) VALUES (?, ?, ?)",
-            [recipeId, config.instructions[i].id, config.instructions[i].text]
+            [recipeId, config.instructions[i].id, config.instructions[i].instruction_text]
           );
         }
       }
@@ -603,7 +603,7 @@ export default class Database {
         for (let ingredient of config.ingredients) {
           await connection.query(
             "INSERT INTO recipe_ingredients (recipe_id, ingredient_name, quantity, unit_type) VALUES (?, ?, ?, ?)",
-            [recipeId, ingredient.name, ingredient.quantity, ingredient.unit]
+            [recipeId, ingredient.ingredient_name, ingredient.quantity, ingredient.unit_type]
           );
         }
       }
@@ -613,7 +613,7 @@ export default class Database {
         for (let i = 0; i < config.instructions.length; i++) {
           await connection.query(
             "INSERT INTO recipe_instructions (recipe_id, instruction_number, instruction_text) VALUES (?, ?, ?)",
-            [recipeId, config.instructions[i].id, config.instructions[i].text]
+            [recipeId, config.instructions[i].id, config.instructions[i].instruction_text]
           );
         }
       }
@@ -871,5 +871,34 @@ export default class Database {
         console.error("Error cleaning up unverified users:", error.message);
       }
     }, 24 * 60 * 60 * 1000);
+  }
+
+  async delete_recipe(recipeId) {
+    const connection = await this.db.getConnection();
+    await connection.beginTransaction();
+
+    try {
+      // Delete related records first (due to foreign key constraints)
+      await connection.query("DELETE FROM recipe_ingredients WHERE recipe_id = ?", [recipeId]);
+      await connection.query("DELETE FROM recipe_instructions WHERE recipe_id = ?", [recipeId]);
+      await connection.query("DELETE FROM recipe_tags WHERE recipe_id = ?", [recipeId]);
+      await connection.query("DELETE FROM recipe_reviews WHERE recipe_id = ?", [recipeId]);
+      await connection.query("DELETE FROM likes WHERE recipe_id = ?", [recipeId]);
+
+      // Delete spinoff relationships
+      await connection.query("DELETE FROM spinoffs WHERE original_recipe_id = ? OR derivative_recipe_id = ?", [recipeId, recipeId]);
+
+      // Finally, delete the recipe itself
+      const [result] = await connection.query("DELETE FROM recipes WHERE id = ?", [recipeId]);
+
+      await connection.commit();
+      return result.affectedRows > 0;
+    } catch (error) {
+      await connection.rollback();
+      console.error("Error deleting recipe:", error);
+      throw error;
+    } finally {
+      connection.release();
+    }
   }
 }

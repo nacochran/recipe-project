@@ -1,6 +1,5 @@
-
 import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Clock, Users, Star, ChefHat, Tag, Share2, Heart } from 'lucide-react';
 import { Img } from "../components/ui/Img.jsx";
 import { Button } from "../components/ui/button.jsx";
@@ -42,17 +41,35 @@ const RecipeDetail = ({ user }) => {
     setCrossedOut(newCrossedOut);
   };
 
+  const navigate = useNavigate();
+
   const trashRecipe = async () => {
+    // Show confirmation dialog
+    const isConfirmed = window.confirm("Are you sure you want to delete this recipe?");
+
+    if (!isConfirmed) {
+      return; // Exit if user cancels
+    }
+
     try {
-      const response = await fetch(`http://localhost:5000/${username}/recipes/${recipe_slug}/delete`);
+      const response = await fetch(`http://localhost:5000/delete-recipe/${recipe.id}`, {
+        method: 'POST',
+        credentials: 'include', // Include cookies for authentication
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
       if (!response.ok) {
-        throw new Error('Failed to fetch');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete recipe');
       }
-      const json = await response.json();
+
+      // Navigate back to user's profile after successful deletion
+      navigate('/profile/recipes');
     } catch (err) {
-      console.error('Error fetching recipe:', err);
-    } finally {
-      // Navigate to area
+      console.error('Error deleting recipe:', err);
+      alert(err.message || 'Failed to delete recipe. Please try again.');
     }
   };
 

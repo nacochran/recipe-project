@@ -26,17 +26,17 @@ const RecipeForm = ({ existingRecipe = null, user }) => {
   const [image, setImage] = useState(existingRecipe?.image || '');
   const [availableTags, setAvailableTags] = useState([]);
   const [tagSearch, setTagSearch] = useState('');
-  const [calories, setCalories] = useState(0);
+  const [calories, setCalories] = useState(existingRecipe?.cal_count || 0);
   const [tags, setTags] = useState(existingRecipe?.tags || []);
-  const [prepTime, setPrepTime] = useState(existingRecipe?.prepTime || 0);
-  const [cookTime, setCookTime] = useState(existingRecipe?.cookTime || 0);
+  const [prepTime, setPrepTime] = useState(existingRecipe?.prep_time || 0);
+  const [cookTime, setCookTime] = useState(existingRecipe?.cook_time || 0);
   const [difficulty, setDifficulty] = useState(existingRecipe?.difficulty || 'medium');
   const [servings, setServings] = useState(existingRecipe?.servings || 2);
   const [ingredients, setIngredients] = useState(existingRecipe?.ingredients || [
-    { id: 1, quantity: '', name: '' }
+    { id: 1, quantity: '', ingredient_name: '' }
   ]);
   const [instructions, setInstructions] = useState(existingRecipe?.instructions || [
-    { id: 1, text: '' }
+    { id: 1, instruction_text: '' }
   ]);
 
   useEffect(() => {
@@ -75,10 +75,11 @@ const RecipeForm = ({ existingRecipe = null, user }) => {
   // Ingredient handlers
   const addIngredient = () => {
     const newId = ingredients.length > 0 ? Math.max(...ingredients.map(i => i.id)) + 1 : 1;
-    setIngredients([...ingredients, { id: newId, quantity: '', name: '' }]);
+    setIngredients([...ingredients, { id: newId, quantity: '', ingredient_name: '' }]);
   };
 
   const updateIngredient = (id, field, value) => {
+    console.log(field);
     setIngredients(ingredients.map(ingredient =>
       ingredient.id === id ? { ...ingredient, [field]: value } : ingredient
     ));
@@ -106,12 +107,12 @@ const RecipeForm = ({ existingRecipe = null, user }) => {
   // Instruction handlers
   const addInstruction = () => {
     const newId = instructions.length > 0 ? Math.max(...instructions.map(i => i.id)) + 1 : 1;
-    setInstructions([...instructions, { id: newId, text: '' }]);
+    setInstructions([...instructions, { id: newId, instruction_text: '' }]);
   };
 
   const updateInstruction = (id, text) => {
     setInstructions(instructions.map(instruction =>
-      instruction.id === id ? { ...instruction, text } : instruction
+      instruction.id === id ? { ...instruction, instruction_text: text } : instruction
     ));
   };
 
@@ -134,42 +135,48 @@ const RecipeForm = ({ existingRecipe = null, user }) => {
     setInstructions(newInstructions);
   };
 
+
+
   // Form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    console.log(ingredients);
 
     let uploadedImageUrl = null;
 
     if (!imageFile && !existingRecipe && !existingRecipe.image_url) {
       alert("Please upload an image before submitting.");
       return;
-    } else if (!existingRecipe && !existingRecipe.image_url) {
-      // todo: 
     }
 
     // Upload image
     const formData = new FormData();
-    formData.append('image', imageFile);
 
-    try {
-      const res = await fetch('http://localhost:5000/upload-image', {
-        method: 'POST',
-        body: formData,
-      });
+    if (imageFile) {
+      formData.append('image', imageFile);
+      try {
+        const res = await fetch('http://localhost:5000/upload-image', {
+          method: 'POST',
+          body: formData,
+        });
 
-      const data = await res.json();
+        const data = await res.json();
 
-      uploadedImageUrl = data.imageUrl;
-    } catch (err) {
-      console.error('Upload error:', err);
-      return;
+        uploadedImageUrl = data.imageUrl;
+      } catch (err) {
+        console.error('Upload error:', err);
+        return;
+      }
     }
+
+
 
     // Build the recipe object with the image URL
     const recipe = {
       id: existingRecipe?.id,
       title,
-      imageUrl: uploadedImageUrl,
+      imageUrl: existingRecipe?.image_url || uploadedImageUrl,
       description: description,
       tags,
       calories,
@@ -178,8 +185,8 @@ const RecipeForm = ({ existingRecipe = null, user }) => {
       totalTime: (parseInt(prepTime, 10) || 0) + (parseInt(cookTime, 10) || 0),
       difficulty,
       servings: parseInt(servings, 10) || 2,
-      ingredients: ingredients.filter(ingredient => ingredient.name.trim() !== ''),
-      instructions: instructions.filter(instruction => instruction.text.trim() !== ''),
+      ingredients: ingredients.filter(ingredient => ingredient.ingredient_name.trim() !== ''),
+      instructions: instructions.filter(instruction => instruction.instruction_text.trim() !== ''),
       authorUsername: user.username,
       createdAt: existingRecipe?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString()
@@ -465,13 +472,13 @@ const RecipeForm = ({ existingRecipe = null, user }) => {
                   />
                   <Input
                     value={ingredient.unit_type}
-                    onChange={(e) => updateIngredient(ingredient.id, 'unit', e.target.value)}
+                    onChange={(e) => updateIngredient(ingredient.id, 'unit_type', e.target.value)}
                     placeholder="Unit (e.g.: cups)"
                     className="flex-1"
                   />
                   <Input
                     value={ingredient.ingredient_name}
-                    onChange={(e) => updateIngredient(ingredient.id, 'name', e.target.value)}
+                    onChange={(e) => updateIngredient(ingredient.id, 'ingredient_name', e.target.value)}
                     placeholder="Ingredient name"
                     className="flex-1"
                     required
@@ -582,7 +589,7 @@ const RecipeForm = ({ existingRecipe = null, user }) => {
           <Button
             type="button"
             variant="outline"
-            onClick={() => navigate(`/${existingRecipe.author_name}/recipes/${existingRecipe.slug}`)}
+            onClick={() => navigate('/profile/recipes')}
           >
             Cancel
           </Button>

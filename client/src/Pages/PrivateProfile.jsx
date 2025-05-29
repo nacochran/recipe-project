@@ -4,7 +4,7 @@ import {
   User, ChefHat, Calendar, Heart, Award, Clock, LogOut,
   Settings, PlusCircle, BarChart3
 } from 'lucide-react';
-import { userStats } from '../data/user-data';  // Assuming userStats is still static
+import { userStats } from '../data/user-data'; // test data
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Img } from '@/components/ui/Img';

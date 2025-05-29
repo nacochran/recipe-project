@@ -96,6 +96,7 @@ const Search = () => {
       <RecipeGrid
         recipes={filteredRecipes}
         emptyMessage="No recipes match your criteria. Try adjusting your filters."
+        loading={loading}
       />
     </div>
   );
